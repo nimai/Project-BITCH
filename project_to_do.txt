@@ -1,0 +1,82 @@
+1. Keys
+*******
+- Certificate authority keys -> (Pca, Kca)
+
+- Loyalty encryption keys -> (Penc, Denc)
+
+- Shop signing keys -> (Pshop, Kshop)
+
+- Tag secret key -> (K)
+
+- Tag initialization keys -> (Kdesfire, Km1, Kw1, Km2)
+
+
+2. Memory organization
+**********************
+- AID 0x00 00 00
+  -> Kdesfire at KeyNo 00  
+
+- AID 0x00 00 01
+  -> FID 0x01 contains E = Enc Penc (K)
+  -> FID 0x02 contains S = Sign Pshop (E)
+  -> Km1 at KeyNo 00 -> (master key of AID 01) 
+  -> Kw1 at KeyNo 01 -> (write access of AID 01)
+	
+- AID 0x00 00 02
+  -> FID 0x01 contains counter C of bought sandwiches
+  -> FID 0x02 contains log of the 10 last purchases 
+  -> Km2 at KeyNo 00 -> (master key of AID 02)
+  -> K at KeyNo 01 -> (read/write access of AID 02)
+
+3. TO DO
+******** 
+
+ 3.1 Create an RFID loyalty card
+ *******************************
+ - select AID 01
+ - authenticate to AID 01 with KeyNo 00 (value = 0x0)
+ - change KeyNo 00 with Km1
+ - change KeyNo 01 with Kw1	
+ - (authenticate to AID 01 with new Km1)
+ - create file 0x01 with write access = 01 and read access = free
+ - create file 0x02 with write access = 01 and read acces = free
+ - authenticate to AID 01 with Kw1
+ - compute and write E to FID 01
+ - compute and write S to FID 02
+
+ - select AID 02
+ - authenticate to AID 01 with KeyNo 00 (value = 0x0)  
+ - change KeyNo 00 with Km2
+ - change KeyNo 01 with K
+ - create file 0x01 with write access = 01 and write access = 01
+ - create file 0x02 with write access = 01 and write access = 01
+ - authenticate to AID 01 with K and obtain session key SK
+ - write Enc SK (0) to FID 01
+ 	
+
+ 3.2 Read an RFID loyalty card and interpret data
+ ***********************************************
+ - Read FID 01 to retrieve E
+ - Compute K = Dec Kenc (E)
+ - Read FID 02 to retrieve S
+ - Check S by computing Verify Pshop (E) for each known Pshop	
+ - Authenticate to AID 01 with K and obtain session key SK
+ - Read FID 01 to retrieve C' = Enc SK (C)
+ - Read FID 02 to retrieve log' = Enc SK (log)
+ - Compute C = Dec SK (C')
+ - Compute log = Dec SK(log')
+ - Interpret C and log
+
+
+ 3.3 Modify data on an RFID loyalty card
+ ***************************************
+ - same steps as for 3.2
+ - compute C' = Enc SK (C+1) 
+ - modify log at slot (C+1) mod 10
+ - compute log' = Enc SK (log)
+ - write C' to FID 01
+ - write log' to FID 02  
+
+ 3.4 Reset the RFID loyalty card to the initial state
+ ****************************************************
+ ? 
