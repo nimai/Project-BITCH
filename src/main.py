@@ -1,5 +1,6 @@
 import sys
 
+from smartcard.Exceptions import CardRequestTimeoutException
 from loyalty_card import *
 
 
@@ -16,9 +17,14 @@ def print_help():
 
 def init_loyalty_card():
    card = LoyaltyCard()
-   card.poll();
-   card.initialize()
-   print "Loyalty card successfully initialized"
+   try: 
+      card.poll();       
+   except CardRequestTimeoutException:
+      print "No card detected!"
+   else:
+      card.initialize()
+      print "Loyalty card successfully initialized"
+   
 
 def reset_loyalty_card():
    card = LoyaltyCard()

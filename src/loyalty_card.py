@@ -2,10 +2,16 @@
     along with methods to interact with the physical RFID card '''
 
 from smartcard.System import readers
+from smartcard.CardType import ATRCardType, AnyCardType
+from smartcard.CardRequest import CardRequest
+from smartcard.Exceptions import *
+from smartcard.util import toHexString, toBytes
 from crypto import *
 
 class LoyaltyCard:
    
+   __cardservice = None
+
    def __init__(self):
       pass   
 
@@ -30,8 +36,16 @@ class LoyaltyCard:
    def __verify_signature(self):
       pass
 
-   def poll(self):
-      pass
+   def poll(self):	
+      cardtype = ATRCardType(toBytes( "3B 04 41 11 77 81" ))
+      #cardtype = AnyCardType()
+      cardrequest = CardRequest( timeout=5, cardType=cardtype )
+      try:
+         self.__cardservice = cardrequest.waitforcard()
+      except CardRequestTimeoutException:
+         raise
+      self.__cardservice.connection.connect()
+      print toHexString( self.__cardservice.connection.getATR() )	
 
    def initialize(self):
       pass
