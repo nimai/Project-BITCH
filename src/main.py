@@ -1,6 +1,8 @@
 import sys
 
 from smartcard.Exceptions import CardRequestTimeoutException
+from smartcard.System import readers
+from smartcard.util import toHexString
 from loyalty_card import *
 
 
@@ -28,24 +30,43 @@ def init_loyalty_card():
 
 def reset_loyalty_card():
    card = LoyaltyCard()
-   card.poll()
-   card.reset()
-   print "Loyalty card successfully reset to factory settings"
+   try: 
+      card.poll();       
+   except CardRequestTimeoutException:
+      print "No card detected!"
+   else:   
+      card.reset()
+      print "Loyalty card successfully reset to factory settings"
 
 def read_loyalty_card():
    card = LoyaltyCard()
-   card.poll()
-   print card.get_counter()
-   print card.get_log()
+   try: 
+      card.poll();       
+   except CardRequestTimeoutException:
+      print "No card detected!"
+   else:
+      print card.get_counter()
+      print card.get_log()
 
 def buy_sandwich(n):
    card = LoyaltyCard()
-   card.poll()
-   card.add_sandwich(n)
-   print str(n)+" purchase(s) correctly added to the loyalty card"
+   try: 
+      card.poll();       
+   except CardRequestTimeoutException:
+      print "No card detected!"
+   else:
+      card.add_sandwich(n)
+      print str(n)+" purchase(s) correctly added to the loyalty card"
+
+def check_reader_availability():
+   r=readers() 
+   if len(r) < 1:
+      print "Warning: no reader available"     
+     
 
 def main_loop():
    while 1:
+      check_reader_availability()
       try:
          command = raw_input("$sandwich-manager> ") 	 
       except KeyboardInterrupt:
@@ -62,7 +83,7 @@ def main_loop():
       elif command == "buy":
          buy_sandwich(1)
       elif command == "quit":
-	break	
+         break	
       else:
          print "Unknown command"
       
