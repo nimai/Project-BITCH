@@ -6,14 +6,22 @@ from smartcard.CardType import ATRCardType, AnyCardType
 from smartcard.CardRequest import CardRequest
 from smartcard.Exceptions import *
 from smartcard.util import toHexString, toBytes
+from command_builder import * 
 from crypto import *
+
+
+def perform_command(conn, apdu):
+   response, sw1, sw2 = conn.transmit(apdu)   
+   get_resp = get_response_apdu(sw2)
+   response, sw1, sw2 = conn.transmit(get_resp)
+   print 'response: ', response, ' status words: ', "%x %x" % (sw1, sw2)
+   return response, sw1, sw2        	
+
 
 class LoyaltyCard:
    
-   __cardservice = None
-
-   def __init__(self):
-      pass   
+   def __init__(self, conn):     
+      self.__connection = conn          
 
    def __select_aid(self, aid):
       pass
@@ -36,18 +44,22 @@ class LoyaltyCard:
    def __verify_signature(self):
       pass
 
-   def poll(self):	
-      cardtype = ATRCardType(toBytes( "3B 04 41 11 77 81" ))
-      #cardtype = AnyCardType()
-      cardrequest = CardRequest( timeout=5, cardType=cardtype )
-      try:
-         self.__cardservice = cardrequest.waitforcard()
-      except CardRequestTimeoutException:
-         raise
-      self.__cardservice.connection.connect()
-      print toHexString( self.__cardservice.connection.getATR() )	
+   def poll(self):
+      apdu = polling_apdu()
+      perform_command(self.__connection,apdu)      
+      #/!\ following piece of code does not work with ACR122 reader, we need to do polling instead!
+      #cardtype = ATRCardType(toBytes( "3B 04 41 11 77 81" ))      
+      #cardrequest = CardRequest( timeout=5, cardType=cardtype )
+      #try:
+      #   self.__cardservice = cardrequest.waitforcard()
+      #except CardRequestTimeoutException:
+      #   raise
+      #self.__cardservice.connection.connect()
+      #print toHexString( self.__cardservice.connection.getATR() )
+      	
 
    def initialize(self):
+      select_application_apdu(5123)
       pass
 
    def reset(self):
