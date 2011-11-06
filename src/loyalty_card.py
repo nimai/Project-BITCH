@@ -47,7 +47,8 @@ class LoyaltyCard:
     def poll(self):
         apdu = polling_apdu()
         perform_command(self.__connection,apdu)        
-        #/!\ following piece of code does not work with ACR122 reader, we need to do polling instead!
+        # the following code doesn't work with the card since the ATR is
+        # wrong!!
         #cardtype = ATRCardType(toBytes( "3B 04 41 11 77 81" ))        
         #cardrequest = CardRequest( timeout=5, cardType=cardtype )
         #try:
