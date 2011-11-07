@@ -45,7 +45,7 @@
  - compute and write S to FID 02
 
  - select AID 02
- - authenticate to AID 01 with KeyNo 00 (value = 0x0)  
+ - authenticate to AID 02 with KeyNo 00 (value = 0x0)  
  - change KeyNo 00 with Km2
  - change KeyNo 01 with K
  - create file 0x01 with write access = 01 and write access = 01
@@ -55,12 +55,14 @@
  	
 
  3.2 Read an RFID loyalty card and interpret data
- ***********************************************
+ ************************************************
+ - Select AID 01
  - Read FID 01 to retrieve E
- - Compute K = Dec Kenc (E)
+ - Compute K = Dec Denc (E)
  - Read FID 02 to retrieve S
- - Check S by computing Verify Pshop (E) for each known Pshop	
- - Authenticate to AID 01 with K and obtain session key SK
+ - Check S by computing Verify Pshop (E) for each known Pshop
+ - select AID 02 	
+ - Authenticate to AID 02 with K and obtain session key SK
  - Read FID 01 to retrieve C' = Enc SK (C)
  - Read FID 02 to retrieve log' = Enc SK (log)
  - Compute C = Dec SK (C')
