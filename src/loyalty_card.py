@@ -23,8 +23,16 @@ class LoyaltyCard:
     def __init__(self, conn):      
         self.__connection = conn             
 
-    def __select_aid(self, aid):
+    def __select_application(self, aid):
         pass
+
+    def __create_application(self, aid, key_settings, num_of_keys):
+        apdu = create_application_apdu(aid, key_settings, num_of_keys)
+        response, sw1, sw2 = perform_command(self.__connection, apdu)
+    
+    def __delete_application(self, aid):
+        apdu = delete_application_apdu(aid)
+        response, sw1, sw2 = perform_command(self.__connection, apdu)        
 
     def __create_file(self, aid, no, access_rights):
         pass
@@ -46,7 +54,7 @@ class LoyaltyCard:
 
     def poll(self):
         apdu = polling_apdu()
-        perform_command(self.__connection,apdu)        
+        perform_command(self.__connection, apdu)        
         # the following code doesn't work with the card since the ATR is
         # wrong!!
         #cardtype = ATRCardType(toBytes( "3B 04 41 11 77 81" ))        
@@ -60,7 +68,7 @@ class LoyaltyCard:
         	
 
     def initialize(self):
-        select_application_apdu(5123)
+        __create_application(self, 1, 0x0B, 2):
         pass
 
     def reset(self):

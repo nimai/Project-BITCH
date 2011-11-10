@@ -32,8 +32,8 @@
 ******** 
 
  3.1 Create an RFID loyalty card
- *******************************
- - select AID 01
+ ******************************* 
+ - create and select AID 01
  - authenticate to AID 01 with KeyNo 00 (value = 0x0)
  - change KeyNo 00 with Km1
  - change KeyNo 01 with Kw1	
@@ -44,7 +44,7 @@
  - compute and write E to FID 01
  - compute and write S to FID 02
 
- - select AID 02
+ - create and select AID 02
  - authenticate to AID 02 with KeyNo 00 (value = 0x0)  
  - change KeyNo 00 with Km2
  - change KeyNo 01 with K
@@ -81,4 +81,8 @@
 
  3.4 Reset the RFID loyalty card to the initial state
  ****************************************************
- ? 
+ - select AID 00 
+ - authenticate to AID 00 with Kdesfire
+ - delete application 01
+ - delete aplication 02 
+ - Reset KeyNo 00 to 0x00
