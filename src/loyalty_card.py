@@ -18,6 +18,11 @@ def perform_command(conn, apdu):
     return response, sw1, sw2          	
 
 
+class TagException(Exception):    
+    def __init__(self, msg):        
+        self.msg = msg
+
+
 class LoyaltyCard:
     
     def __init__(self, conn):      
@@ -29,6 +34,8 @@ class LoyaltyCard:
     def __create_application(self, aid, key_settings, num_of_keys):
         apdu = create_application_apdu(aid, key_settings, num_of_keys)
         response, sw1, sw2 = perform_command(self.__connection, apdu)
+        if not(sw1 == int(str(0x90)) and sw2 == int(str(0x0))):            
+            raise TagException('Application creation has failed!')
     
     def __delete_application(self, aid):
         apdu = delete_application_apdu(aid)
@@ -53,7 +60,7 @@ class LoyaltyCard:
         pass
 
     def poll(self):
-        apdu = polling_apdu()
+        apdu = polling_apdu(1)
         perform_command(self.__connection, apdu)        
         # the following code doesn't work with the card since the ATR is
         # wrong!!
@@ -68,11 +75,10 @@ class LoyaltyCard:
         	
 
     def initialize(self):
-        __create_application(self, 1, 0x0B, 2):
-        pass
+        self.__create_application(1, 0x0B, 2)        
 
     def reset(self):
-        pass 
+        self.__delete_application(1)        
 
     def get_counter(self):
         return "2 sandwiches purchased so far"

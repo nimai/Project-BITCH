@@ -96,11 +96,13 @@ def main_loop():
             break	
         else:
             print "Unknown command"
+    connection.disconnect()
         
 
 def main(argv):
     print_welcome()
     main_loop()
+    
 
 if __name__ == "__main__":
     main(sys.argv[1:])
