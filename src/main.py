@@ -32,17 +32,25 @@ def init_loyalty_card(conn):
     t.start()
     card.poll();  
     t.cancel()
-    card.initialize()
-    print "Loyalty card successfully initialized"    
+    try:
+        card.initialize()
+    except TagException as instance:
+        print instance.msg
+    else:
+        print "Loyalty card successfully initialized"    
 
 def reset_loyalty_card(conn):    
     card = LoyaltyCard(conn)  
     t = Timer(3.0, reminder)
     t.start()
     card.poll(); 
-    t.cancel()        
-    card.reset()
-    print "Loyalty card successfully reset to factory settings"
+    t.cancel()
+    try:
+        card.reset()
+    except TagException as instance:
+        print instance.msg
+    else: 
+        print "Loyalty card successfully reset to factory settings"
 
 def read_loyalty_card(conn):
     card = LoyaltyCard(conn)

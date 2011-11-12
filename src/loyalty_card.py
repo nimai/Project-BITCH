@@ -14,7 +14,7 @@ def perform_command(conn, apdu):
     response, sw1, sw2 = conn.transmit(apdu)    
     get_resp = get_response_apdu(sw2)
     response, sw1, sw2 = conn.transmit(get_resp)
-    print 'response: ', response, ' status words: ', "%x %x" % (sw1, sw2)
+    print 'response: ', toHexString(response), ' status words: ', "%x %x" % (sw1, sw2)
     return response, sw1, sw2          	
 
 
@@ -34,12 +34,14 @@ class LoyaltyCard:
     def __create_application(self, aid, key_settings, num_of_keys):
         apdu = create_application_apdu(aid, key_settings, num_of_keys)
         response, sw1, sw2 = perform_command(self.__connection, apdu)
-        if not(sw1 == int(str(0x90)) and sw2 == int(str(0x0))):            
+        if not(response[3] == 0x91 and response[4] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('Application creation has failed!')
     
     def __delete_application(self, aid):
         apdu = delete_application_apdu(aid)
-        response, sw1, sw2 = perform_command(self.__connection, apdu)        
+        response, sw1, sw2 = perform_command(self.__connection, apdu)
+        if not(response[3] == 0x91 and response[4] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
+            raise TagException('Application deletion has failed!')        
 
     def __create_file(self, aid, no, access_rights):
         pass

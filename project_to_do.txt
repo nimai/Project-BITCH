@@ -32,7 +32,9 @@
 ******** 
 
  3.1 Create an RFID loyalty card
- ******************************* 
+ *******************************
+ - select AID 00
+ - authenticate to AID 00 with KeyNo 00 
  - create and select AID 01
  - authenticate to AID 01 with KeyNo 00 (value = 0x0)
  - change KeyNo 00 with Km1
