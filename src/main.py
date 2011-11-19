@@ -4,10 +4,17 @@ from smartcard.Exceptions import CardRequestTimeoutException
 from smartcard.System import readers
 from smartcard.util import toHexString
 from threading import Timer
+from Crypto import PublicKey
+import Crypto.PublicKey.RSA
 from loyalty_card import *
 
 
 connection = None
+
+""" Encryption/Decryption keys """
+P_K_enc = None 
+P_K_shop = None
+P_ca = None
 
 def print_welcome():
     print "Welcome to sandwich-manager beta release."
@@ -80,7 +87,24 @@ def check_reader_availability():
         connection.connect()  
         
 def reminder():
-    print "No card detected! Please insert a card."        
+    print "No card detected! Please insert a card."  
+
+def read_keys():
+    global P_K_enc, P_K_shop, P_ca     
+    key = open('./keys/P_enc--loyaltyEncryptionPublic.key').read()
+    P_K_enc = PublicKey.RSA.importKey(key)    
+    key = open('./keys/K_enc--loyaltyEncryptionPrivate.key').read()
+    P_K_enc = PublicKey.RSA.importKey(key)  
+    key = open('./keys/P_CA--CAPublicKey.key').read()  
+    P_ca = PublicKey.RSA.importKey(key)
+    
+    # key = open('./keys/?.key').read()  
+    # P_K_shop = PublicKey.RSA.importKey(key)	
+    # key = open('./keys/?.key').read()  
+    # P_K_shop = PublicKey.RSA.importKey(key)
+    
+
+
 
 def main_loop():
     while 1:
@@ -109,6 +133,7 @@ def main_loop():
 
 def main(argv):
     print_welcome()
+    read_keys()
     main_loop()
     
 

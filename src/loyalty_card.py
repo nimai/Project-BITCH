@@ -7,7 +7,9 @@ from smartcard.CardRequest import CardRequest
 from smartcard.Exceptions import *
 from smartcard.util import toHexString, toBytes
 from command_builder import * 
-from crypto import *
+from Crypto.Cipher import DES
+import Crypto.Random.random
+from Crypto.Random.random import *
 
 
 def perform_command(conn, apdu):
@@ -21,12 +23,18 @@ def perform_command(conn, apdu):
 class TagException(Exception):    
     def __init__(self, msg):        
         self.msg = msg
-
+        
 
 class LoyaltyCard:
     
-    def __init__(self, conn):      
-        self.__connection = conn             
+    def __init__(self, conn):     
+        random_gen = StrongRandom() 
+        self.__connection = conn              
+        self.__kdesfire = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
+        self.__k = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
+        self.__km1 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
+        self.__km2 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
+        self.__kw1 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)            
 
     def __select_application(self, aid):
         pass
@@ -49,14 +57,14 @@ class LoyaltyCard:
     def __change_key(self, aid, key_no, new_key):
         pass
 
-    def __authenticate(self, aid, key):
+    def __authenticate(self, aid, key_no, key):
         pass
 
-    def __write_data(self, aid, file_no, data):
+    def __write_data(self, aid, file_no, data, key):
         pass
 
-    def __read_data(self, aid, file_no):
-        pass
+    def __read_data(self, aid, file_no, key):
+        return None
 
     def __verify_signature(self):
         pass
@@ -83,9 +91,13 @@ class LoyaltyCard:
         self.__delete_application(1)        
 
     def get_counter(self):
+        sk = self.__authenticate(2,1,self.__k)
+        c = self.__read_data(2, 1, sk)
         return "2 sandwiches purchased so far"
 
     def get_log(self):
+        sk = self.__authenticate(2,1,self.__k)
+        log = self.__read_data(2, 2, sk)
         return "22/10/2011 - 12:51 - Subway-like\n" + "02/11/2011 - 13:28 - Bob's shop"
 
     def add_sandwich(self, n):
