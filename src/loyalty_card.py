@@ -28,13 +28,8 @@ class TagException(Exception):
 class LoyaltyCard:
     
     def __init__(self, conn):     
-        random_gen = StrongRandom() 
         self.__connection = conn              
-        self.__kdesfire = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
-        self.__k = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
-        self.__km1 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
-        self.__km2 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
-        self.__kw1 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)            
+                
 
     def __select_application(self, aid):
         pass
@@ -85,6 +80,12 @@ class LoyaltyCard:
         	
 
     def initialize(self):
+        random_gen = StrongRandom() 
+        self.__kdesfire = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
+        self.__k = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
+        self.__km1 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
+        self.__km2 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
+        self.__kw1 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)    
         self.__create_application(1, 0x0B, 2)        
 
     def reset(self):
