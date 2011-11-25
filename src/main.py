@@ -33,8 +33,8 @@ def print_help():
     print "quit    : try to guess" 
 
 
-def init_loyalty_card(conn):    
-    card = LoyaltyCard(conn)
+def init_loyalty_card(p_k_enc, p_k_shop, p_ca, conn):    
+    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, conn)
     t = Timer(3.0, reminder)
     t.start()
     card.poll();  
@@ -46,8 +46,8 @@ def init_loyalty_card(conn):
     else:
         print "Loyalty card successfully initialized"    
 
-def reset_loyalty_card(conn):    
-    card = LoyaltyCard(conn)  
+def reset_loyalty_card(p_k_enc, p_k_shop, p_ca, conn):    
+    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, conn)  
     t = Timer(3.0, reminder)
     t.start()
     card.poll(); 
@@ -59,8 +59,8 @@ def reset_loyalty_card(conn):
     else: 
         print "Loyalty card successfully reset to factory settings"
 
-def read_loyalty_card(conn):
-    card = LoyaltyCard(conn)
+def read_loyalty_card(p_k_enc, p_k_shop, p_ca, conn):
+    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, conn)
     t = Timer(3.0, reminder)
     t.start()
     card.poll();    
@@ -68,8 +68,8 @@ def read_loyalty_card(conn):
     print card.get_counter()
     print card.get_log()
 
-def buy_sandwich(n, conn):
-    card = LoyaltyCard(conn)
+def buy_sandwich(n, p_k_enc, p_k_shop, p_ca, conn):
+    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, conn)
     t = Timer(3.0, reminder)
     t.start()
     card.poll(); 
@@ -97,11 +97,10 @@ def read_keys():
     P_K_enc = PublicKey.RSA.importKey(key)  
     key = open('./keys/P_CA--CAPublicKey.key').read()  
     P_ca = PublicKey.RSA.importKey(key)
-    
-    # key = open('./keys/?.key').read()  
-    # P_K_shop = PublicKey.RSA.importKey(key)	
-    # key = open('./keys/?.key').read()  
-    # P_K_shop = PublicKey.RSA.importKey(key)
+    key = open('./keys/Attrapez-les-tous_RSAprivate.key').read()  
+    P_K_shop = PublicKey.RSA.importKey(key)	
+    #key = open('./keys/?.key').read()  
+    #P_K_shop = PublicKey.RSA.importKey(key)	
     
 
 
@@ -117,13 +116,13 @@ def main_loop():
         if command == "h" or command == "help":
             print_help()
         elif command == "init":
-            init_loyalty_card(connection)
+            init_loyalty_card(P_K_enc, P_K_shop, P_ca, connection)
         elif command == "reset":
-            reset_loyalty_card(connection)
+            reset_loyalty_card(P_K_enc, P_K_shop, P_ca, connection)
         elif command == "read":
-            read_loyalty_card(connection)
+            read_loyalty_card(P_K_enc, P_K_shop, P_ca, connection)
         elif command == "buy":
-            buy_sandwich(1,connection)
+            buy_sandwich(1, P_K_enc, P_K_shop, P_ca, connection)
         elif command == "quit":
             break	
         else:

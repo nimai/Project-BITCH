@@ -6,10 +6,12 @@ from smartcard.CardType import ATRCardType, AnyCardType
 from smartcard.CardRequest import CardRequest
 from smartcard.Exceptions import *
 from smartcard.util import toHexString, toBytes
+from binascii import hexlify, unhexlify 
 from command_builder import * 
 from Crypto.Cipher import DES
 import Crypto.Random.random
 from Crypto.Random.random import *
+import struct
 
 
 def perform_command(conn, apdu):
@@ -17,8 +19,34 @@ def perform_command(conn, apdu):
     get_resp = get_response_apdu(sw2)
     response, sw1, sw2 = conn.transmit(get_resp)
     print 'response: ', toHexString(response), ' status words: ', "%x %x" % (sw1, sw2)
-    return response, sw1, sw2          	
+    return response, sw1, sw2
 
+def bytes_to_str(array):
+    return toHexString(array).replace(" ","").lower()  
+
+def str_to_bytes(string):
+    return map(ord, string.decode("hex"))
+
+def perform_DES_CBC_send_mode(key, cipher_text):
+    padding = unhexlify("00"*8)
+    #a
+    des = DES.new(key, DES.MODE_CBC, padding) 
+    nt = des.decrypt(cipher_text)       
+    nt2 = nt[1:]+nt[:1]    
+    # b        
+    des = DES.new(key, DES.MODE_CBC, padding)
+    nr=unhexlify(str(StrongRandom().randint(1000000000000000,9999999999999999)))        
+    D1=des.decrypt(nr)      
+    #c
+    longlongint1=struct.unpack('>Q',struct.pack('8s', D1))[0]
+    longlongint2=struct.unpack('>Q',struct.pack('8s', nt2))[0]
+    buff=struct.unpack('8s',struct.pack('>Q', longlongint1 ^ longlongint2))[0]     
+    # d
+    des = DES.new(key, DES.MODE_CBC, padding)
+    D2=des.decrypt(buff)    
+    #e		
+    return nt, nt2, nr, D1, D2  
+    
 
 class TagException(Exception):    
     def __init__(self, msg):        
@@ -27,23 +55,32 @@ class TagException(Exception):
 
 class LoyaltyCard:
     
-    def __init__(self, conn):     
+    def __init__(self, p_k_enc, p_k_shop, p_ca, conn):
+        self.__P_K_enc = p_k_enc
+        self.__P_K_shop = p_k_shop
+        self.__P_ca = p_ca 
         self.__connection = conn              
                 
 
     def __select_application(self, aid):
-        pass
+        apdu = select_application_apdu(aid)
+        print "select application"
+        response, sw1, sw2 = perform_command(self.__connection, apdu)
+        if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
+            raise TagException('Application selection has failed!')
 
     def __create_application(self, aid, key_settings, num_of_keys):
         apdu = create_application_apdu(aid, key_settings, num_of_keys)
+        print "create application" 
         response, sw1, sw2 = perform_command(self.__connection, apdu)
-        if not(response[3] == 0x91 and response[4] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
+        if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('Application creation has failed!')
     
     def __delete_application(self, aid):
         apdu = delete_application_apdu(aid)
+        print "delete application"
         response, sw1, sw2 = perform_command(self.__connection, apdu)
-        if not(response[3] == 0x91 and response[4] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
+        if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('Application deletion has failed!')        
 
     def __create_file(self, aid, no, access_rights):
@@ -52,8 +89,32 @@ class LoyaltyCard:
     def __change_key(self, aid, key_no, new_key):
         pass
 
-    def __authenticate(self, aid, key_no, key):
-        pass
+    def __authenticate(self, key_no, key):
+        apdu = authentication_1st_step_apdu(key_no)
+        print "authentication 1st step"
+        response, sw1, sw2 = perform_command(self.__connection, apdu)
+        if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0xAF and sw1 == 0x90 and sw2 == 0x00):            
+            raise TagException('Authentication has failed (1st step)!')
+        
+        cyper_text = unhexlify(bytes_to_str(response[3:11]))        
+        nt, nt2, nr, D1, D2 = perform_DES_CBC_send_mode(key, cyper_text) 
+        deciphered_data = hexlify(D1)+hexlify(D2) 	
+        apdu = authentication_2nd_step_apdu(str_to_bytes(deciphered_data))
+        print "authentication 2nd step"
+        response, sw1, sw2 = perform_command(self.__connection, apdu)
+        if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
+            raise TagException('Authentication has failed (2nd step)!')
+
+        des = DES.new(key, DES.MODE_CBC, unhexlify("00"*8)) 
+        nr2 = des.decrypt(unhexlify(bytes_to_str(response[3:11])))
+        if not nr2 == nr[1:]+nr[:1]:
+            raise TagException('Authentication has failed (2nd step)!')
+        
+        if hexlify(key[0:4]) == hexlify(key[4:8]):
+            return hexlify(nr[0:4]) + hexlify(nt[0:4])
+
+        return hexlify(nr[0:4]) + hexlify(nt[0:4]) + hexlify(nr[4:8]) + hexlify(nt[4:8])
+        
 
     def __write_data(self, aid, file_no, data, key):
         pass
@@ -80,13 +141,32 @@ class LoyaltyCard:
         	
 
     def initialize(self):
-        random_gen = StrongRandom() 
-        self.__kdesfire = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
-        self.__k = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
-        self.__km1 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
-        self.__km2 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)
-        self.__kw1 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_ECB)    
-        self.__create_application(1, 0x0B, 2)        
+        #/!\ does not work because DES seems to be dependent from an encryption to the other
+        #random_gen = StrongRandom() 
+        #self.__kdesfire = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_CBC)
+        #self.__k = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_CBC)
+        #self.__km1 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_CBC)
+        #self.__km2 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_CBC)
+        #self.__kw1 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_CBC)   
+ 
+        #self.__kdesfire = DES.new(unhexlify("00"*8), DES.MODE_CBC, unhexlify("00"*8))
+        #self.__k = DES.new(unhexlify("00"*8), DES.MODE_CBC, unhexlify("00"*8))
+        #self.__km1 = DES.new(unhexlify("00"*8), DES.MODE_CBC, unhexlify("00"*8))
+        #self.__km2 = DES.new(unhexlify("00"*8), DES.MODE_CBC, unhexlify("00"*8))
+        #self.__kw1 = DES.new(unhexlify("00"*8), DES.MODE_CBC, unhexlify("00"*8))    
+	
+	self.__kdesfire = unhexlify("00"*8)
+        self.__k = unhexlify("00"*8)
+        self.__km1 = unhexlify("00"*8)
+        self.__km2 = unhexlify("00"*8)
+        self.__kw1 = unhexlify("00"*8)
+        
+
+        self.__select_application(0x00)
+        print self.__authenticate(0x00, self.__kdesfire)
+        #self.__create_application(1, 0x0B, 2)
+        
+                
 
     def reset(self):
         self.__delete_application(1)        
