@@ -118,6 +118,8 @@ def main_loop():
             command = raw_input("$sandwich-manager> ") 	 
         except KeyboardInterrupt:
             break
+        except EOFError:
+            break
         
         if command == "h" or command == "help":
             print_help()

@@ -180,7 +180,7 @@ class LoyaltyCard:
         #self.__km2 = DES.new(unhexlify("00"*8), DES.MODE_CBC, unhexlify("00"*8))
         #self.__kw1 = DES.new(unhexlify("00"*8), DES.MODE_CBC, unhexlify("00"*8))    
 	
-	self.__kdesfire = unhexlify("00"*8)
+	    self.__kdesfire = unhexlify("00"*8)
         self.__k = unhexlify("00"*8)
         self.__km1 = unhexlify("00"*8)
         self.__km2 = unhexlify("00"*8)
