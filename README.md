@@ -19,13 +19,3 @@ Authors
 * Arnaud Theismann
 * Bernard Paulus
 * Nicolas Maitre
-
-
-
-On s'amuse
-==========
-
-Vamos a la playa
-a mi me gusta bailar
-el ritmo de la noche
-sounds of fiestaaaaaaaa

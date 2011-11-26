@@ -7,6 +7,7 @@ from threading import Timer
 from Crypto import PublicKey
 import Crypto.PublicKey.RSA
 from loyalty_card import *
+import readline # just adding this line improves raw_input() edition capabilities
 
 
 connection = None
@@ -91,18 +92,23 @@ def reminder():
 
 def read_keys():
     global P_K_enc, P_K_shop, P_ca     
-    key = open('./keys/P_enc--loyaltyEncryptionPublic.key').read()
-    P_K_enc = PublicKey.RSA.importKey(key)    
-    key = open('./keys/K_enc--loyaltyEncryptionPrivate.key').read()
-    P_K_enc = PublicKey.RSA.importKey(key)  
-    key = open('./keys/P_CA--CAPublicKey.key').read()  
-    P_ca = PublicKey.RSA.importKey(key)
-    key = open('./keys/Attrapez-les-tous_RSAprivate.key').read()  
-    P_K_shop = PublicKey.RSA.importKey(key)	
-    #key = open('./keys/?.key').read()  
-    #P_K_shop = PublicKey.RSA.importKey(key)	
-    
-
+    try:
+        key = open('./keys/P_enc--loyaltyEncryptionPublic.key').read()
+        P_K_enc = PublicKey.RSA.importKey(key)    
+        key = open('./keys/K_enc--loyaltyEncryptionPrivate.key').read()
+        P_K_enc = PublicKey.RSA.importKey(key)  
+        key = open('./keys/P_CA--CAPublicKey.key').read()  
+        P_ca = PublicKey.RSA.importKey(key)
+        key = open('./keys/Attrapez-les-tous_RSAprivate.key').read()  
+    except IOError:
+        print """
+    Need the files:
+    ./keys/P_enc--loyaltyEncryptionPublic.key
+    ./keys/K_enc--loyaltyEncryptionPrivate.key
+    ./keys/P_CA--CAPublicKey.key  
+    ./keys/Attrapez-les-tous_RSAprivate.key  
+    """
+        exit(-1)
 
 
 def main_loop():
@@ -127,7 +133,7 @@ def main_loop():
             break	
         else:
             print "Unknown command"
-    connection.disconnect()
+    connection == None or connection.disconnect()
         
 
 def main(argv):
