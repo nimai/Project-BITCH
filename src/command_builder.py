@@ -32,3 +32,15 @@ def authentication_2nd_step_apdu(deciphered_data):
     res.extend(deciphered_data)
     res.append(0x00)
     return res 
+
+def create_file_apdu(file_no, com_set, acc_rights, file_size):
+    res = [0xFF, 0x00, 0x00, 0x00, 0x10, 0xD4, 0x40, 0x01, 0x90, 0xCD, 0x00, 0x00, 0x07]
+    res.append(file_no)
+    res.append(com_set)
+    res.extend(acc_rights)
+    res.extend(file_size)
+    res.append(0x00)
+    return res;
+   
+            
+

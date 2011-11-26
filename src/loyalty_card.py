@@ -15,9 +15,9 @@ import struct
 
 
 def perform_command(conn, apdu):
-    response, sw1, sw2 = conn.transmit(apdu)    
-    get_resp = get_response_apdu(sw2)
-    response, sw1, sw2 = conn.transmit(get_resp)
+    response, sw1, sw2 = conn.transmit(apdu)        
+    get_resp = get_response_apdu(sw2)    
+    response, sw1, sw2 = conn.transmit(get_resp)    
     print 'response: ', toHexString(response), ' status words: ', "%x %x" % (sw1, sw2)
     return response, sw1, sw2
 
@@ -26,6 +26,23 @@ def bytes_to_str(array):
 
 def str_to_bytes(string):
     return map(ord, string.decode("hex"))
+
+def int_to_bytes(integer):
+    res = []
+    binary_string = bin(integer)
+    binary_string = binary_string[2:len(binary_string)]    
+    padding = 0
+    if not len(binary_string) % 8 == 0:
+        padding =  8 - len(binary_string) % 8
+    binary_string = ("0"*padding)+binary_string
+    print binary_string
+    for i in range(0,(len(binary_string)/8)):  
+        tmp = binary_string[i:i+8]       
+        res.append(int(tmp, 2))
+        i+=8
+	print tmp	
+    return res
+    
 
 def perform_DES_CBC_send_mode(key, cipher_text):
     padding = unhexlify("00"*8)
@@ -59,7 +76,8 @@ class LoyaltyCard:
         self.__P_K_enc = p_k_enc
         self.__P_K_shop = p_k_shop
         self.__P_ca = p_ca 
-        self.__connection = conn              
+        self.__connection = conn  
+        self.__kdesfire = unhexlify("00"*8)            
                 
 
     def __select_application(self, aid):
@@ -71,7 +89,7 @@ class LoyaltyCard:
 
     def __create_application(self, aid, key_settings, num_of_keys):
         apdu = create_application_apdu(aid, key_settings, num_of_keys)
-        print "create application" 
+        print "create application: ", toHexString(apdu) 
         response, sw1, sw2 = perform_command(self.__connection, apdu)
         if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('Application creation has failed!')
@@ -83,8 +101,15 @@ class LoyaltyCard:
         if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('Application deletion has failed!')        
 
-    def __create_file(self, aid, no, access_rights):
-        pass
+    def __create_file(self, file_no, com_set, acc_rights, file_size):
+        fs = int_to_bytes(file_size)
+        for i in range(0, 3-len(fs)):
+            fs.append(0)        
+        apdu = create_file_apdu(file_no, com_set, acc_rights, fs)
+        print "create file"
+        response, sw1, sw2 = perform_command(self.__connection, apdu)
+        if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
+            raise TagException('File creation has failed!')
 
     def __change_key(self, aid, key_no, new_key):
         pass
@@ -161,14 +186,16 @@ class LoyaltyCard:
         self.__km2 = unhexlify("00"*8)
         self.__kw1 = unhexlify("00"*8)
         
-
         self.__select_application(0x00)
-        print self.__authenticate(0x00, self.__kdesfire)
-        #self.__create_application(1, 0x0B, 2)
-        
-                
+        self.__authenticate(0x00, self.__kdesfire)
+        self.__create_application(0x01, 0x0B, 0x02) 
+        self.__select_application(0x01)
+        self.__authenticate(0x00, self.__km1)       
+        self.__create_file(1, 3, [0x00, 0xE1], 128)
 
     def reset(self):
+        self.__select_application(0)
+        self.__authenticate(0, self.__kdesfire)
         self.__delete_application(1)        
 
     def get_counter(self):
