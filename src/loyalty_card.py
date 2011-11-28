@@ -60,50 +60,7 @@ def int_to_bytes_with_padding(integer, n):
         res.append(0)
     return res   
 
-def perform_authentication(key, cipher_text):
-    iv = unhexlify("00"*8)
-    #a
-    des = DES.new(key, DES.MODE_CBC, iv) 
-    nt = des.decrypt(cipher_text)       
-    nt2 = nt[1:]+nt[:1]    
-    # b        
-    des = DES.new(key, DES.MODE_CBC, iv)
-    nr=unhexlify(str(StrongRandom().randint(1000000000000000,9999999999999999)))        
-    D1=des.decrypt(nr)      
-    #c
-    longlongint1=struct.unpack('>Q',struct.pack('8s', D1))[0]
-    longlongint2=struct.unpack('>Q',struct.pack('8s', nt2))[0]
-    buff=struct.unpack('8s',struct.pack('>Q', longlongint1 ^ longlongint2))[0]     
-    # d
-    des = DES.new(key, DES.MODE_CBC, iv)
-    D2=des.decrypt(buff)    
-    #e		
-    return nt, nt2, nr, D1, D2  
 
-def xor(a,b):
-    longlongint1=struct.unpack('>Q',struct.pack('8s', a))[0]
-    longlongint2=struct.unpack('>Q',struct.pack('8s', b))[0]
-    buff=struct.unpack('8s',struct.pack('>Q', longlongint1 ^ longlongint2))[0]  
-    return buff
-
-def decipher_CBC_send_mode(session_key, data):
-    res = ""
-    iv = unhexlify("00"*8)
-    des = DES.new(session_key, DES.MODE_CBC, iv)
-    d = des.decrypt(data[0:8])
-    res+=d
-    i=8
-    while not i == len(data):
-        des = DES.new(session_key, DES.MODE_CBC, iv)  
-        d = des.decrypt(xor(d, data[i:i+8])) 
-        res+=d
-        i+=8    
-    return res
-
-def decipher_CBC_receive_mode(session_key, data):
-    iv = unhexlify("00"*8)
-    des = DES.new(session_key, DES.MODE_CBC, iv)
-    return des.decrypt(data)
 
 class TagException(Exception):    
     def __init__(self, msg):        
@@ -186,20 +143,22 @@ class LoyaltyCard:
         return hexlify(nr[0:4]) + hexlify(nt[0:4]) + hexlify(nr[4:8]) + hexlify(nt[4:8])
         
 
-    def __write_data(self, file_no, offset, data, key):
+    def __write_data(self, file_no, offset, data, key, is_ascii):
         padding = 0
-        bdata = str_to_bytes(data)     
+        if is_ascii:
+            bdata = str_to_bytes(data)
+        else:
+            bdata = hexstr_to_bytes(data)     
         data_len = len(bdata)
-        crc = crc16_iso14443a(data)#[::-1]   
+        print data_len
+        crc = crc16_iso14443a(bdata) 
         bdata.extend(crc)
         if not len(bdata) % 8 == 0:
             padding = 8 - (len(bdata) % 8)
         for i in range(0, padding):
-            bdata.append(0x00)
-        print "p: ", bytes_to_hexstr(bdata)
-        print "c: ", hexlify(decipher_CBC_send_mode(key, bytes_to_str(bdata)))
+            bdata.append(0x00)        
         deciphered_data = hexstr_to_bytes(hexlify(decipher_CBC_send_mode(key, bytes_to_str(bdata)))) # wouaw :o 
-     
+        
         if len(deciphered_data) < 53:        
             apdu = write_data_1st_step_apdu(file_no, int_to_bytes_with_padding(offset, 3), int_to_bytes_with_padding(data_len , 3), deciphered_data)
             print "write data: ", toHexString(apdu)
@@ -283,14 +242,8 @@ class LoyaltyCard:
         #self.__km2 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_CBC)
         #self.__kw1 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_CBC)   
  
-        #self.__kdesfire = DES.new(unhexlify("00"*8), DES.MODE_CBC, unhexlify("00"*8))
-        #self.__k = DES.new(unhexlify("00"*8), DES.MODE_CBC, unhexlify("00"*8))
-        #self.__km1 = DES.new(unhexlify("00"*8), DES.MODE_CBC, unhexlify("00"*8))
-        #self.__km2 = DES.new(unhexlify("00"*8), DES.MODE_CBC, unhexlify("00"*8))
-        #self.__kw1 = DES.new(unhexlify("00"*8), DES.MODE_CBC, unhexlify("00"*8))    
-	
-	self.__kdesfire = unhexlify("00"*8)
-        self.__k = unhexlify("00"*8)
+        self.__kdesfire = unhexlify("00"*8)
+        self.__k = unhexlify("12"*8)
         self.__km1 = unhexlify("00"*8)
         self.__km2 = unhexlify("00"*8)
         self.__kw1 = unhexlify("00"*8)
@@ -302,11 +255,10 @@ class LoyaltyCard:
         self.__authenticate(0x00, self.__km1)       
         self.__create_file(1, 3, [0x00, 0xE1], 128)
         sk = unhexlify(self.__authenticate(0x01, self.__kw1))
-
-        self.__write_data(1, 0, "hello world hello world hello world hello world hello world hello world hello world hello world", sk)
-        print self.__read_data(1, 0, 100, None)
-        
-        
+        E = hexlify(self.__P_K_enc.encrypt(self.__k, 32)[0])
+        self.__write_data(1, 0, E, sk, False)
+        read = self.__read_data(1, 0, 128, None)
+        print "read: ", read
 
     def reset(self):
         self.__select_application(0)
