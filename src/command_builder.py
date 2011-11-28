@@ -59,9 +59,9 @@ def write_data_1st_step_apdu(file_no, offset, length, deciphered_data):
     return res
   
          
-def write_data_2nd_step_adu(deciphered_data):
+def write_data_2nd_step_apdu(deciphered_data):
     data_len = len(deciphered_data)
-    nbytes = 8 + data_len    
+    nbytes = 9 + data_len    
     res = [0xFF, 0x00, 0x00, 0x00, nbytes, 0xD4, 0x40, 0x01, 0x90, 0xAF, 0x00, 0x00, data_len]
     res.extend(deciphered_data)
     res.append(0x00)
@@ -69,7 +69,7 @@ def write_data_2nd_step_adu(deciphered_data):
 
 def read_data_1st_step_apdu(file_no, offset, length):
     data_len = 7
-    nbytes = 8 + data_len
+    nbytes = 9 + data_len
     res = [0xFF, 0x00, 0x00, 0x00, nbytes, 0xD4, 0x40, 0x01, 0x90, 0xBD, 0x00, 0x00, data_len]
     res.append(file_no)
     res.extend(offset)
@@ -77,9 +77,8 @@ def read_data_1st_step_apdu(file_no, offset, length):
     res.append(0x00)
     return res
 
-def read_data_2nd_step_apdu():
-    data_len = 0
-    nbytes = 9
-    return [0xFF, 0x00, 0x00, 0x00, nbytes, 0xD4, 0x40, 0x01, 0x90, 0xAF, 0x00, 0x00, data_len, 0x00]    
+def read_data_2nd_step_apdu():    
+    nbytes = 8
+    return [0xFF, 0x00, 0x00, 0x00, nbytes, 0xD4, 0x40, 0x01, 0x90, 0xAF, 0x00, 0x00, 0x00]    
   
 

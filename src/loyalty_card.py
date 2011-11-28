@@ -100,6 +100,11 @@ def decipher_CBC_send_mode(session_key, data):
         i+=8    
     return res
 
+def decipher_CBC_receive_mode(session_key, data):
+    iv = unhexlify("00"*8)
+    des = DES.new(session_key, DES.MODE_CBC, iv)
+    return des.decrypt(data)
+
 class TagException(Exception):    
     def __init__(self, msg):        
         self.msg = msg
@@ -195,7 +200,7 @@ class LoyaltyCard:
         print "c: ", hexlify(decipher_CBC_send_mode(key, bytes_to_str(bdata)))
         deciphered_data = hexstr_to_bytes(hexlify(decipher_CBC_send_mode(key, bytes_to_str(bdata)))) # wouaw :o 
      
-        if len(deciphered_data) < 53:                           
+        if len(deciphered_data) < 53:        
             apdu = write_data_1st_step_apdu(file_no, int_to_bytes_with_padding(offset, 3), int_to_bytes_with_padding(data_len , 3), deciphered_data)
             print "write data: ", toHexString(apdu)
             response, sw1, sw2 = perform_command(self.__connection, apdu)
@@ -206,24 +211,50 @@ class LoyaltyCard:
             apdu = write_data_1st_step_apdu(file_no, int_to_bytes_with_padding(offset, 3) , int_to_bytes_with_padding(data_len, 3), deciphered_data[0:52])
             print "write data"
             response, sw1, sw2 = perform_command(self.__connection, apdu)
-            if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
+            if not(response[len(response)-2] == 0x91 and (response[len(response)-1] == 0xAF or response[len(response)-1] == 0x00) 
+            and sw1 == 0x90 and sw2 == 0x00):            
                 raise TagException('Write data has failed!') 
             i = 52
-            while not i == len(deciphered_data):
+            while i < len(deciphered_data):
                 if (i+59) > len(deciphered_data):
                     end = len(deciphered_data)
                 else:
                     end = i+59
                 apdu = write_data_2nd_step_apdu(deciphered_data[i:end])
-                print "write data"
+                print "write data 2nd step: ", toHexString(apdu)
                 response, sw1, sw2 = perform_command(self.__connection, apdu)
-                if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
-                    raise TagException('Write data has failed!')
+                if not(response[len(response)-2] == 0x91 and (response[len(response)-1] == 0xAF or response[len(response)-1] == 0x00) 
+                and sw1 == 0x90 and sw2 == 0x00):            
+                    raise TagException('Write data has failed!') 
+                i+=59
             
         
         
-    def __read_data(self, file_no, key, encrypted):
-        return None
+    def __read_data(self, file_no, offset, length, key):
+        data = ""
+        apdu = read_data_1st_step_apdu(file_no, int_to_bytes_with_padding(offset , 3), int_to_bytes_with_padding(length , 3))
+        print "read data 1st step"
+        response, sw1, sw2 = perform_command(self.__connection, apdu)
+        if not (response[len(response)-2] == 0x91 and sw1 == 0x90 and sw2 == 0x00): 
+            raise TagException('Read data has failed (1st step)!')	
+	if not (response[len(response)-1] == 0x00 or response[len(response)-1] == 0xAF):
+            raise TagException('Read data has failed (1st step)')
+        data += bytes_to_str(response[3:len(response)-2])
+        if response[len(response)-1] == 0xAF:
+            while True:
+                apdu = read_data_2nd_step_apdu()
+                print "read data 2nd step"
+                response, sw1, sw2 = perform_command(self.__connection, apdu)
+                if not (response[len(response)-2] == 0x91 and sw1 == 0x90 and sw2 == 0x00): 
+                    raise TagException('Read data has failed (2nd step)!')	
+	        if not (response[len(response)-1] == 0x00 or response[len(response)-1] == 0xAF):
+                    raise TagException('Read data has failed (2nd step)')
+                data += bytes_to_str(response[3:len(response)-2])
+                if response[len(response)-1] == 0x00:
+                    break
+        if key == None:
+            return data
+        return decipher_CBC_receive_mode(key, data)
 
     def __verify_signature(self):
         pass
@@ -272,7 +303,9 @@ class LoyaltyCard:
         self.__create_file(1, 3, [0x00, 0xE1], 128)
         sk = unhexlify(self.__authenticate(0x01, self.__kw1))
 
-        self.__write_data(1, 0, "hello world", sk)
+        self.__write_data(1, 0, "hello world hello world hello world hello world hello world hello world hello world hello world", sk)
+        print self.__read_data(1, 0, 100, None)
+        
         
 
     def reset(self):
