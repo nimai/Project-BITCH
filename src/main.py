@@ -66,18 +66,26 @@ def read_loyalty_card(p_k_enc, p_k_shop, p_ca, conn):
     t = Timer(3.0, reminder)
     t.start()
     card.poll();    
-    t.cancel()        
-    print card.get_counter()
-    print card.get_log()
+    t.cancel()   
+    try:     
+        print card.get_counter()
+        print card.get_log()
+    except TagException as instance:
+        print instance.msg
+        
 
 def buy_sandwich(n, p_k_enc, p_k_shop, p_ca, conn):
     card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, conn)
     t = Timer(3.0, reminder)
     t.start()
     card.poll(); 
-    t.cancel()            
-    card.add_sandwich(n)
-    print str(n)+" purchase(s) correctly added to the loyalty card"
+    t.cancel()
+    try:       
+        card.add_sandwich(n)
+    except TagException as instance:
+        print instance.msg
+    else:
+        print str(n)+" purchase(s) correctly added to the loyalty card"
 
 def check_reader_availability():
     global connection
@@ -101,6 +109,7 @@ def read_keys():
         key = open('./keys/P_CA--CAPublicKey.key').read()  
         P_ca = PublicKey.RSA.importKey(key)
         key = open('./keys/Attrapez-les-tous_RSAprivate.key').read()  
+        P_K_shop = PublicKey.RSA.importKey(key)
     except IOError:
         print """
     Need the files:
