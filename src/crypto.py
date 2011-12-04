@@ -34,15 +34,15 @@ def xor(a,b):
     buff=struct.unpack('8s',struct.pack('>Q', longlongint1 ^ longlongint2))[0]  
     return buff
 
-def decipher_CBC_send_mode(session_key, data):
+def decipher_CBC_send_mode(session_key, data, algo=DES):
     res = ""
     iv = unhexlify("00"*8)
-    des = DES.new(session_key, DES.MODE_CBC, iv)
+    des = algo.new(session_key, algo.MODE_CBC, iv)
     d = des.decrypt(data[0:8])
     res+=d
     i=8
     while not i == len(data):
-        des = DES.new(session_key, DES.MODE_CBC, iv)  
+        des = algo.new(session_key, algo.MODE_CBC, iv)  
         d = des.decrypt(xor(d, data[i:i+8])) 
         res+=d
         i+=8    

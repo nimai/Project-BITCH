@@ -1,4 +1,4 @@
-''' Representation of an RFID loyalty card 
+''' Representation of an FID loyalty card 
      along with methods to interact with the physical RFID card '''
 
 from smartcard.System import readers
@@ -30,6 +30,7 @@ def hexstr_to_bytes(string):
     return map(ord, string.decode("hex"))
 
 def str_to_bytes(string):
+    """converts an ascii string to a list of their ascii values"""
     return map(ord, string.decode("ascii"))
 
 def bytes_to_str(array):

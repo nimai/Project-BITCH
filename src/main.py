@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import sys
 
 from smartcard.Exceptions import CardRequestTimeoutException
