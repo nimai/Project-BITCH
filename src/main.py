@@ -4,10 +4,12 @@ from smartcard.Exceptions import CardRequestTimeoutException
 from smartcard.System import readers
 from smartcard.util import toHexString
 from threading import Timer
+from M2Crypto import *
 from Crypto import PublicKey
 import Crypto.PublicKey.RSA
 from loyalty_card import *
 import readline # just adding this line improves raw_input() edition capabilities
+import os
 
 
 connection = None
@@ -16,6 +18,9 @@ connection = None
 P_K_enc = None 
 P_K_shop = None
 P_ca = None
+
+""" shops certificates """
+cert = []
 
 def print_welcome():
     print "Welcome to sandwich-manager beta release."
@@ -28,14 +33,14 @@ def print_welcome():
 
 def print_help():  
     print "init    : initialize a new RFID loyalty card"
-    print "reset  : reset an RFID loyalty card to factory settings"
+    print "reset   : reset an RFID loyalty card to factory settings"
     print "read    : read the content of an RFID loyalty card"
     print "buy     : add a purchase to an RFID loyalty card"
     print "quit    : try to guess" 
 
 
-def init_loyalty_card(p_k_enc, p_k_shop, p_ca, conn):    
-    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, conn)
+def init_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):    
+    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)
     t = Timer(3.0, reminder)
     t.start()
     card.poll();  
@@ -47,8 +52,8 @@ def init_loyalty_card(p_k_enc, p_k_shop, p_ca, conn):
     else:
         print "Loyalty card successfully initialized"    
 
-def reset_loyalty_card(p_k_enc, p_k_shop, p_ca, conn):    
-    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, conn)  
+def reset_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):    
+    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)  
     t = Timer(3.0, reminder)
     t.start()
     card.poll(); 
@@ -60,8 +65,8 @@ def reset_loyalty_card(p_k_enc, p_k_shop, p_ca, conn):
     else: 
         print "Loyalty card successfully reset to factory settings"
 
-def read_loyalty_card(p_k_enc, p_k_shop, p_ca, conn):
-    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, conn)
+def read_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):
+    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)
     t = Timer(3.0, reminder)
     t.start()
     card.poll();    
@@ -73,8 +78,8 @@ def read_loyalty_card(p_k_enc, p_k_shop, p_ca, conn):
         print instance.msg
         
 
-def buy_sandwich(n, p_k_enc, p_k_shop, p_ca, conn):
-    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, conn)
+def buy_sandwich(n, p_k_enc, p_k_shop, p_ca, cert, conn):
+    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)
     t = Timer(3.0, reminder)
     t.start()
     card.poll(); 
@@ -119,6 +124,14 @@ def read_keys():
     """
         exit(-1)
 
+def read_certificates():
+    global cert
+    listing = os.listdir('./certificates')
+    for infile in listing:        
+        cert.append(X509.load_cert('./certificates/'+infile, X509.FORMAT_PEM))
+
+    
+
 
 def main_loop():
     while 1:
@@ -133,13 +146,13 @@ def main_loop():
         if command == "h" or command == "help":
             print_help()
         elif command == "init":
-            init_loyalty_card(P_K_enc, P_K_shop, P_ca, connection)
+            init_loyalty_card(P_K_enc, P_K_shop, P_ca, cert, connection)
         elif command == "reset":
-            reset_loyalty_card(P_K_enc, P_K_shop, P_ca, connection)
+            reset_loyalty_card(P_K_enc, P_K_shop, P_ca, cert, connection)
         elif command == "read":
-            read_loyalty_card(P_K_enc, P_K_shop, P_ca, connection)
+            read_loyalty_card(P_K_enc, P_K_shop, P_ca, cert, connection)
         elif command == "buy":
-            buy_sandwich(1, P_K_enc, P_K_shop, P_ca, connection)
+            buy_sandwich(1, P_K_enc, P_K_shop, P_ca, cert, connection)
         elif command == "quit":
             break	
         else:
@@ -150,6 +163,7 @@ def main_loop():
 def main(argv):
     print_welcome()
     read_keys()
+    read_certificates()	
     main_loop()
     
 

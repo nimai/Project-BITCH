@@ -10,6 +10,7 @@ from binascii import hexlify, unhexlify
 from datetime import datetime
 from Crypto.Cipher import DES
 import Crypto.Random.random
+import Crypto.Hash.SHA as SHA
 from Crypto.Random.random import *
 
 from command_builder import * 
@@ -70,6 +71,12 @@ def int_to_bytes_with_padding(integer, n):
 def long_to_bytes(a):    
     return int_to_bytes(a)
 
+def long_to_hexstr(n):
+    return hexlify(unhexlify("%x" % n)) 
+
+def hexstr_to_long(s):
+    return long(s, 16)
+
 def encode_counter(c):
     res = str_to_bytes(str(c))
     if len(res) < 4:
@@ -100,13 +107,13 @@ def encode_log(c, shop_name, p_k_shop):
     
     shop_name_bytes = str_to_bytes(shop_name)
     for i in range(len(shop_name_bytes), 58):
-        shop_name_bytes.append(ord(" "))   
+	shop_name_bytes.append(0x00)
+        #shop_name_bytes.append(ord(" "))   
     res.extend(shop_name_bytes)
  
     log = bytes_to_hexstr(res)
     s = long_to_bytes(p_k_shop.sign(log ,32)[0])
-    res.extend(s)   
-    print bytes_to_str(res[0:72]) 
+    res.extend(s)       
     return res
 
 def decode_log(raw_data):
@@ -120,13 +127,14 @@ class TagException(Exception):
 
 class LoyaltyCard:
     
-    def __init__(self, p_k_enc, p_k_shop, p_ca, conn):
+    def __init__(self, p_k_enc, p_k_shop, p_ca, cert, conn):
         self.__P_K_enc = p_k_enc
         self.__P_K_shop = p_k_shop
         self.__P_ca = p_ca 
         self.__connection = conn  
         self.__kdesfire = unhexlify("00"*8)        
         self.__k = unhexlify("00"*8)     
+        self.__cert = cert
                 
 
     def __select_application(self, aid):
@@ -300,15 +308,20 @@ class LoyaltyCard:
         self.__create_application(0x01, 0x0B, 0x02) 
         self.__select_application(0x01)
         self.__authenticate(0x00, self.__km1)       
-        self.__create_file(1, 3, [0x00, 0xE1], 128)
-        self.__create_file(2, 3, [0x00, 0xE1], 128)
+        self.__create_file(1, 3, [0xFF, 0xE1], 128)
+        self.__create_file(2, 3, [0xFF, 0xE1], 128)
 
         sk = unhexlify(self.__authenticate(0x01, self.__kw1))        
-        E = hexlify(self.__P_K_enc.encrypt(self.__k, 32)[0])
-        self.__write_data(1, 0, hexstr_to_bytes(E), sk)
+        E = self.__P_K_enc.encrypt(self.__k, '')[0]
+        self.__write_data(1, 0, hexstr_to_bytes(hexlify(E)), sk)
  
-        S = self.__P_K_shop.sign(E ,32)[0]
-        self.__write_data(2, 0, long_to_bytes(S), sk)
+        digest=SHA.new(E).digest()
+        print "digest: ", hexlify(digest)
+        S = self.__P_K_shop.sign(digest ,'')[0]
+        print "S: ", S
+        print "S: ", long_to_hexstr(S) #bytes_to_hexstr(long_to_bytes(S))
+        
+        self.__write_data(2, 0, hexstr_to_bytes(long_to_hexstr(S)), sk)
         """read = self.__read_data(2, 0, 128, None)
         print "read: ", read"""
 
@@ -317,8 +330,8 @@ class LoyaltyCard:
         self.__create_application(0x02, 0x0B, 0x02) 
         self.__select_application(0x02)
         sk = unhexlify(self.__authenticate(0x00, self.__km2))
-        self.__create_file(1, 3, [0x10, 0xE1], 32)
-        self.__create_file(2, 3, [0x10, 0x11], 2000)
+        self.__create_file(1, 3, [0xFF, 0xE1], 32)
+        self.__create_file(2, 3, [0x1F, 0x11], 2000)
         
         sk = unhexlify(self.__authenticate(0x01, self.__k)) 
         self.__write_data(1, 0, encode_counter(0), sk)  
@@ -332,33 +345,54 @@ class LoyaltyCard:
         self.__erase_memory()      
 
     def get_counter(self):
-        self.__select_application(0x02)
+	self.__select_application(0x02)
         c = decode_counter(self.__read_data(1, 0, 32, None))
         return str(c)+" sandwiches purchased so far"
 
     def get_log(self):
         log = ""
-        self.__select_application(0x02)
-        sk = unhexlify(self.__authenticate(0x01, self.__k)) 
+	self.__select_application(1)
+	E = self.__read_data(1, 0, 128, None)
+	K = self.__P_K_enc.decrypt(E)	
+	if (hexlify(K) == "00"):
+		K = unhexlify("00"*8)
+
+	self.__select_application(0x02)
+        sk = unhexlify(self.__authenticate(0x01, K)) 
         for i in range(0,10):
             log += decode_log(self.__read_data(2, 200*i, 78, sk))
             log += "\n"
-            #i+=1
         return log
 
     def add_sandwich(self, n):
+
         self.__select_application(0x02)
-        #read = hexstr_to_bytes(hexlify(self.__read_data(1, 0, 32, None)))
-        #print "read: ", read[0:4]
         old_c = decode_counter(self.__read_data(1, 0, 32, None))
         new_c = old_c + 1
-        if new_c % 10 == 0:
-            print "This sandwich is free!"
-        sk = unhexlify(self.__authenticate(0x01, self.__k)) 
+
+	self.__select_application(0x01)
+	E = self.__read_data(1, 0, 128, None)
+        if hexlify(E)[0:1] == '0':
+            E = unhexlify("00")
+        print "E: ", hexlify(E)
+	K = self.__P_K_enc.decrypt(E)	
+	if (hexlify(K) == "00"):
+		K = unhexlify("00"*8)        
+        S = self.__read_data(2, 0, 128, None) 
+        print "S: ", hexlify(S)
+        print "S: ", hexstr_to_long(hexlify(S))       
+        if verify_s(self.__cert, S, E):
+            print "This tag is authenticated"
+        else:
+            raise TagException('The tag could not be authenticated!')
+
+	self.__select_application(0x02)
+	sk = unhexlify(self.__authenticate(0x01, K))
         self.__write_data(1, 0, encode_counter(new_c), sk) 
         log = encode_log(new_c,"Attrapez-les-tous", self.__P_K_shop)
         self.__write_data(2, (old_c % 10) * 200, log, sk) 
-        
+        if new_c % 10 == 0:
+            print "This sandwich is free!"
         
         
     
