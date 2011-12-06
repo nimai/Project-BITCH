@@ -4,9 +4,19 @@
 from Crypto.Cipher import DES
 from Crypto.Random.random import *
 from crcISO import *
+from M2Crypto import *
 
+import Crypto.PublicKey.RSA as pyRSA
 import Crypto.Random.random
+import Crypto.Hash.SHA as SHA
+import base64
 import struct
+
+def long_to_hexstr(n):
+    return hexlify(unhexlify("%x" % n)) 
+
+def hexstr_to_long(s):
+    return long(s, 16)
 
 def perform_authentication(key, cipher_text):
     iv = unhexlify("00"*8)
@@ -56,3 +66,18 @@ def decipher_CBC_receive_mode(session_key, data):
 def encipher_DES(mode, iv, key, data):
     des = DES.new(session_key, mode, iv)
     return des.encrypt(data)
+
+def verify_s(cert_list, signature, data):
+    digest=SHA.new(data).digest()    
+    for x in cert_list:
+        key = x.get_pubkey().get_rsa()
+        subject = x.get_subject()
+        key = pyRSA.importKey(key.as_pem())
+        pub = key.publickey()
+        l = hexstr_to_long(hexlify(signature))
+        if pub.verify(digest, (l, '')):
+            return subject
+    return None
+        
+
+
