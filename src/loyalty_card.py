@@ -139,21 +139,21 @@ class LoyaltyCard:
 
     def __select_application(self, aid):
         apdu = select_application_apdu(aid)
-        print "select application"
+        #print "select application"
         response, sw1, sw2 = perform_command(self.__connection, apdu)
         if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('Application selection has failed!')
 
     def __create_application(self, aid, key_settings, num_of_keys):
         apdu = create_application_apdu(aid, key_settings, num_of_keys)
-        print "create application: ", toHexString(apdu) 
+        #print "create application: ", toHexString(apdu) 
         response, sw1, sw2 = perform_command(self.__connection, apdu)
         if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('Application creation has failed!')
     
     def __delete_application(self, aid):
         apdu = delete_application_apdu(aid)
-        print "delete application"
+        #print "delete application"
         response, sw1, sw2 = perform_command(self.__connection, apdu)
         if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('Application deletion has failed!')        
@@ -161,14 +161,14 @@ class LoyaltyCard:
     def __create_file(self, file_no, com_set, acc_rights, file_size):
         fs = int_to_bytes_with_padding(file_size, 3)                           
         apdu = create_file_apdu(file_no, com_set, acc_rights, fs)
-        print "create file"
+        #print "create file"
         response, sw1, sw2 = perform_command(self.__connection, apdu)
         if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('File creation has failed!')
 
     def __erase_memory(self):
         apdu = format_PICC_apdu()
-        print "erase memory"
+        #print "erase memory"
         response, sw1, sw2 = perform_command(self.__connection, apdu)
         if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('PICC formating has failed')
@@ -178,7 +178,7 @@ class LoyaltyCard:
 
     def __authenticate(self, key_no, key):
         apdu = authentication_1st_step_apdu(key_no)
-        print "authentication 1st step"
+        #print "authentication 1st step"
         response, sw1, sw2 = perform_command(self.__connection, apdu)
         if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0xAF and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('Authentication has failed (1st step)!')
@@ -187,7 +187,7 @@ class LoyaltyCard:
         nt, nt2, nr, D1, D2 = perform_authentication(key, cyper_text) 
         deciphered_data = hexlify(D1)+hexlify(D2) 	
         apdu = authentication_2nd_step_apdu(hexstr_to_bytes(deciphered_data))
-        print "authentication 2nd step"
+        #print "authentication 2nd step"
         response, sw1, sw2 = perform_command(self.__connection, apdu)
         if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('Authentication has failed (2nd step)!')
@@ -216,14 +216,14 @@ class LoyaltyCard:
         
         if len(deciphered_data) < 53:        
             apdu = write_data_1st_step_apdu(file_no, int_to_bytes_with_padding(offset, 3), int_to_bytes_with_padding(data_len , 3), deciphered_data)
-            print "write data: ", toHexString(apdu)
+            #print "write data: ", toHexString(apdu)
             response, sw1, sw2 = perform_command(self.__connection, apdu)
             if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
                 raise TagException('Write data has failed!')
 
         else:
             apdu = write_data_1st_step_apdu(file_no, int_to_bytes_with_padding(offset, 3) , int_to_bytes_with_padding(data_len, 3), deciphered_data[0:52])
-            print "write data"
+            #print "write data"
             response, sw1, sw2 = perform_command(self.__connection, apdu)
             if not(response[len(response)-2] == 0x91 and (response[len(response)-1] == 0xAF or response[len(response)-1] == 0x00) 
             and sw1 == 0x90 and sw2 == 0x00):            
@@ -235,7 +235,7 @@ class LoyaltyCard:
                 else:
                     end = i+59
                 apdu = write_data_2nd_step_apdu(deciphered_data[i:end])
-                print "write data 2nd step: ", toHexString(apdu)
+                #print "write data 2nd step: ", toHexString(apdu)
                 response, sw1, sw2 = perform_command(self.__connection, apdu)
                 if not(response[len(response)-2] == 0x91 and (response[len(response)-1] == 0xAF or response[len(response)-1] == 0x00) 
                 and sw1 == 0x90 and sw2 == 0x00):            
@@ -247,7 +247,7 @@ class LoyaltyCard:
     def __read_data(self, file_no, offset, length, key):
         data = ""
         apdu = read_data_1st_step_apdu(file_no, int_to_bytes_with_padding(offset , 3), int_to_bytes_with_padding(length , 3))
-        print "read data 1st step"
+        #print "read data 1st step"
         response, sw1, sw2 = perform_command(self.__connection, apdu)
         if not (response[len(response)-2] == 0x91 and sw1 == 0x90 and sw2 == 0x00): 
             raise TagException('Read data has failed (1st step)!')	
@@ -257,7 +257,7 @@ class LoyaltyCard:
         if response[len(response)-1] == 0xAF:
             while True:
                 apdu = read_data_2nd_step_apdu()
-                print "read data 2nd step"
+                #print "read data 2nd step"
                 response, sw1, sw2 = perform_command(self.__connection, apdu)
                 if not (response[len(response)-2] == 0x91 and sw1 == 0x90 and sw2 == 0x00): 
                     raise TagException('Read data has failed (2nd step)!')	
@@ -275,17 +275,7 @@ class LoyaltyCard:
 
     def poll(self):
         apdu = polling_apdu(1)
-        perform_command(self.__connection, apdu)        
-        # the following code doesn't work with the card since the ATR is
-        # wrong!!
-        #cardtype = ATRCardType(toBytes( "3B 04 41 11 77 81" ))        
-        #cardrequest = CardRequest( timeout=5, cardType=cardtype )
-        #try:
-        #    self.__cardservice = cardrequest.waitforcard()
-        #except CardRequestTimeoutException:
-        #    raise
-        #self.__cardservice.connection.connect()
-        #print toHexString( self.__cardservice.connection.getATR() )
+        perform_command(self.__connection, apdu)       
         	
 
     def initialize(self):
@@ -315,15 +305,10 @@ class LoyaltyCard:
         E = self.__P_K_enc.encrypt(self.__k, '')[0]
         self.__write_data(1, 0, hexstr_to_bytes(hexlify(E)), sk)
  
-        digest=SHA.new(E).digest()
-        print "digest: ", hexlify(digest)
-        S = self.__P_K_shop.sign(digest ,'')[0]
-        print "S: ", S
-        print "S: ", long_to_hexstr(S) #bytes_to_hexstr(long_to_bytes(S))
+        digest=SHA.new(E).digest()       
+        S = self.__P_K_shop.sign(digest ,'')[0]       
         
-        self.__write_data(2, 0, hexstr_to_bytes(long_to_hexstr(S)), sk)
-        """read = self.__read_data(2, 0, 128, None)
-        print "read: ", read"""
+        self.__write_data(2, 0, hexstr_to_bytes(long_to_hexstr(S)), sk)        
 
         self.__select_application(0x00)
         self.__authenticate(0x00, self.__kdesfire)
@@ -373,18 +358,16 @@ class LoyaltyCard:
 	self.__select_application(0x01)
 	E = self.__read_data(1, 0, 128, None)
         if hexlify(E)[0:1] == '0':
-            E = unhexlify("00")
-        print "E: ", hexlify(E)
+            E = unhexlify("00")        
 	K = self.__P_K_enc.decrypt(E)	
 	if (hexlify(K) == "00"):
 		K = unhexlify("00"*8)        
-        S = self.__read_data(2, 0, 128, None) 
-        print "S: ", hexlify(S)
-        print "S: ", hexstr_to_long(hexlify(S))       
-        if verify_s(self.__cert, S, E):
-            print "This tag is authenticated"
+        S = self.__read_data(2, 0, 128, None)         
+        subject = verify_s(self.__cert, S, E)
+        if subject == None:
+            raise TagException('This tag could not be authenticated!')
         else:
-            raise TagException('The tag could not be authenticated!')
+            print "Tag authenticated (owner: "+str(subject)+")" 
 
 	self.__select_application(0x02)
 	sk = unhexlify(self.__authenticate(0x01, K))

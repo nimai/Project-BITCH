@@ -68,17 +68,16 @@ def encipher_DES(mode, iv, key, data):
     return des.encrypt(data)
 
 def verify_s(cert_list, signature, data):
-    digest=SHA.new(data).digest()
-    print "digest: ", hexlify(digest)
-    print "S: ", hexlify(signature)    
+    digest=SHA.new(data).digest()    
     for x in cert_list:
         key = x.get_pubkey().get_rsa()
+        subject = x.get_subject()
         key = pyRSA.importKey(key.as_pem())
         pub = key.publickey()
         l = hexstr_to_long(hexlify(signature))
         if pub.verify(digest, (l, '')):
-            return True
-    return False
+            return subject
+    return None
         
 
 
