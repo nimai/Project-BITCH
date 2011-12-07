@@ -270,9 +270,6 @@ class LoyaltyCard:
             return data
         return decipher_CBC_receive_mode(key, data)
 
-    def __verify_signature(self):
-        pass
-
     def poll(self):
         apdu = polling_apdu(1)
         perform_command(self.__connection, apdu)       
