@@ -38,7 +38,6 @@ def print_help():
     print "buy     : add a purchase to an RFID loyalty card"
     print "quit    : try to guess" 
 
-
 def init_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn): 
     card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)
     t = Timer(3.0, reminder)
