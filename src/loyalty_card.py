@@ -322,7 +322,18 @@ class LoyaltyCard:
         self.__write_data(1, 0, encode_counter(0), sk)  
         self.__write_data(2, 0, str_to_bytes("."*2000), sk) 
 
-
+    def authenticate(self):
+	pass	
+        self.__select_application(0x01)
+	E = self.__read_data(1, 0, 128, None)
+        if hexlify(E)[0:1] == '0':
+            E = unhexlify("00")       
+        S = self.__read_data(2, 0, 128, None)         
+        subject = verify_s(self.__cert, S, E)
+        if subject == None:
+            raise TagException('This tag could not be authenticated!')
+        else:
+            print "Tag authenticated (owner: "+str(subject)+")"
 
     def reset(self):
         self.__select_application(0)
@@ -332,7 +343,9 @@ class LoyaltyCard:
     def get_counter(self):
 	self.__select_application(0x02)
         c = decode_counter(self.__read_data(1, 0, 32, None))
-        return str(c)+" sandwiches purchased so far"
+        if c > 1:
+            return str(c)+" sandwiches purchased so far"
+        return str(c)+" sandwich purchased so far"
 
     def get_log(self):
         log = ""
@@ -367,7 +380,7 @@ class LoyaltyCard:
         if subject == None:
             raise TagException('This tag could not be authenticated!')
         else:
-            print "Tag authenticated (owner: "+str(subject)+")" 
+            print "Tag authenticated (owner: "+str(subject)+")"
 
 	self.__select_application(0x02)
 	sk = unhexlify(self.__authenticate(0x01, K))
