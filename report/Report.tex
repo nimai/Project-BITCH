@@ -14,7 +14,6 @@
 \usepackage {fullpage}
 \usepackage {amsmath}
 \usepackage {geometry}
-%\usepackage {eurosym}
 \usepackage {wrapfig}
 \usepackage {setspace}
 \usepackage [T1] {fontenc}
@@ -28,7 +27,7 @@
 \definecolor{darkgray}{rgb}{0.95,0.95,0.95}
 \lstset{language=Java}
 \def\lstlistingname{Code}
-%\lstset{backgroundcolor=\color{darkgray}}
+\lstset{backgroundcolor=\color{darkgray}}
 \lstset{basicstyle=\small,frame=leftline,captionpos=b,linewidth=\textwidth,breaklines=true,basicstyle=\ttfamily}
 \setstretch{1.1}
 
@@ -41,17 +40,12 @@
 	\author{Nicolas Maître, Bernard Paulus, Arnaud Theismann}
 	\date{December 12, 2011}
 	\maketitle
-	\thispagestyle{empty}
-	\vfill
-	% \begin{figure}[!ht]
-	% 	\centering
-	% 	\includegraphics[scale=0.5]{Images/Ruby_Logo.png}
-	% 	\label{fig:Ruby Logo}
-	% \end{figure}
+	\thispagestyle{empty}	
+	
 	\vfill
 	\begin{figure}[!ht]
 		\centering
-		\includegraphics[scale=0.15]{Images/UCL_Logo.jpg}
+		\includegraphics[scale=0.25]{Images/UCL_Logo.jpg}
 		\label{fig:UCL Logo}
 	\end{figure}
 \end{titlepage}
@@ -60,23 +54,62 @@
 
 \newpage
 \section{Introduction}
+The aim of this project was to design and implement a RFID-based system able to manage electronic loyalty cards for sandwich vendors in Louvain-La-Neuve. \\
 
-\section{Software architecture}
+In this document, we first present the architecture of our software and an overview of its implementation, then we give a security analysis of the whole system, along with ideas to improve it. \\
+
+
+\section{Software Implementation}
+
+\subsection{Architecture}
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=0.50]{Images/ClassDiagram.jpg}
+	\caption{Architecture of the software}
+	\label{fig:class_diagram}	
+\end{figure}
+
+
+As depicted on figure \ref{fig:class_diagram}, our python application is divided in 4 modules. LoyaltyCard class aims at representing an RFID loyalty card and offers methods to interact with. \\
+Main is responsible to create and initialize instances of LoyaltyCard and offers to the user a command prompt to interact with the DesFire tag. Moreover, it is up to this module to load from different files the keys and certificates needed for the management of a loyalty card. \\
+The Crypto module offers high-level cryptographic methods that are used by the LoyaltyCard module. These methods essentially call other methods from external crypto libraries (see next section). \\
+Finally, CommandBuilder is a low-level module that allows to build APDUs to communicate with the tag. \\
+
+
+\subsection{External tools}
+
+In order to communicate with the RFID card, we have used pyscard (\url{http://pyscard.sourceforge.net}) which is a python wrapper for pcsc-lite. \\
+
+PyCrypto library (\url{https://www.dlitz.net/software/pycrypto}) has been used as it provides methods for dealing with DES/3DES and RSA encryption and decryption. This python library is very interesting from a performance point-of-view since speed-critical operations like ciphers and hash functions are actually written in C. \\
+
+In addition to this, since PyCrypto is not able to read certificates in X.509 format, we have used M2Crypto (\url{http://chandlerproject.org/bin/view/Projects/MeTooCrypto}) for this purpose. Retrieving public keys from certificates and verifying signatures is therefore handled thanks to this library which is in fact a wrapper for OpenSSL. \\ 
+
+\subsection{Protection against human mistakes and bugs}
+
+A few measures have been implemented to deal with bugs and human mistakes. First, it is impossible for the user to crash the application by performing a command when there is no RFID tag in the reader's field. Indeed, the presence of a tag is checked after every user input. If no tag is detected, a timer of 3 seconds is launched at the end of which a warning message is printed to the standard output. No further operation can be made as long as the method poll() does not return. \\
+
+Similarly, the presence of an RFID reader is checked at application start-up. The command prompt is enabled only after the system has detected a reader. The presence of a reader is then checked every second to prevent the user from performing an operation when there is no reader. If such a case occurs, a warning message is printed to the standard output. \\ 
+
+Finally, we ask confirmation when the user wants to reset the loyalty card to factory settings. This prevents him from erasing the whole tag memory by mistake. \\ 
+
+
 
 \section{Security analysis}
+
+\subsection{Actual weaknesses of the system}
+
+\subsection{Towards a better solution}
+
+\subsubsection{With same technology and file/data structure}
+
+\subsubsection{With same technology only}
 
 \section{Conclusion}
 
 
 
 
-% Bibliography
-% \newpage
-% \begin{thebibliography}{9}
-% 	\bibitem{Seaside Book}
-% 		%author\\
-% 		%title \emph{}\\
-% 		%url\url{}
-% \end{thebibliography}
+
 
 \end{document}
