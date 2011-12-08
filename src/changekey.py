@@ -23,8 +23,15 @@ def hexstr2bytelist(hex_str):
 
 def main():
     print "enter the current session key or press <enter> for default"
-    currentk = data_input() or "00"*8
-    currentk = unhexlify(currentk)
+    curmaink = unhexlify("00"*8)
+    nt = unhexlify("cb06b4f59a82f6f0")
+    nr = unhexlify("aabbccddeeff1122")
+    if curmaink[0:len(curmaink)/2] == curmaink[len(curmaink)/2:len(curmaink)]:
+        autocurrentk = nr[0:4] + nt[0:4]
+    else:
+        autocurrentk = (nr[0:4] + nt[0:4] + nr[4:8] + nt[4:8])
+    currentk = data_input() 
+    currentk = currentk != "" and unhexlify(currentk) or autocurrentk
     print len(currentk)
     if not (len(currentk) == 8 or len(currentk) == 16):
         raise ValueError("current key size must be either 8bytes (DES) or 16bytes (3DES)")
@@ -44,7 +51,8 @@ def main():
     data = bytes_to_hexstr(k3des_bytel + crc + [0, 0, 0, 0, 0, 0])
     print data
     data2 = unhexlify(data)
-    print hexlify(decipher_CBC_send_mode(currentk, data2))
+    print hexlify(decipher_CBC_send_mode(currentk, data2, 
+        len(currentk) == 8 and DES or DES3))
 
 if __name__ == "__main__":
     main()

@@ -82,3 +82,38 @@ def read_data_2nd_step_apdu():
     return [0xFF, 0x00, 0x00, 0x00, nbytes, 0xD4, 0x40, 0x01, 0x90, 0xAF, 0x00, 0x00, 0x00]    
   
 
+def build_command(command_payload):
+    """ builds a command, inserting the request for transfer [FF 00 00 00 XX]
+    and the anticollision data before the command byte and it's parameters
+    @pre: the command_payload can be a list of bytes or a binary data string
+    @return the complete string of bytes"""
+    try:
+        command_payload.isalnum() # typical string call
+        command = [ ord(x) for x in command_payload]
+    except AttributeError:
+        command = command_payload
+
+    return [0xFF, 0x00, 0x00, 0x00, len(command) + 4, 0xD4, 0x40, 0x01, 0x90
+        ] + command
+
+def change_key_command(keyno, decyphered_key_data):
+    """returns the command to send to change the key
+    @pre: keyno must be an int, deciphered_key_data must be either a binary
+    string or a list of bytes in integers.
+    @return: the command to send"""
+    try:
+        deciphered_key_data.isalnum()
+        dk_data = [ ord(x) for x in command_payload]
+    except AttributeError:
+        dk_data = decyphered_key_data
+    if len(decyphered_key_data) != 24:
+        raise ValueError("Deciphered key data must be 24 bytes long")
+
+    return build_command([0xC4, 0, 0, 0x19, keyno] + dk_data)
+
+def is_response_ok(response, sw1, sw2):
+    """check if the response is ok
+    @return: true if the two last bytes of response are 0x91 and 0 and 
+        sw1 is 0x90 and sw2 is 0.
+        false otherwise."""
+    return response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00:

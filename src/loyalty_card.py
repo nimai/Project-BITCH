@@ -174,8 +174,46 @@ class LoyaltyCard:
         if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('PICC formating has failed')
 
-    def __change_key(self, aid, key_no, new_key):
-        pass
+    def __change_key(self, aid, key_no, old_key, new_key):
+        """changes the old key key_no of application aid.
+        @pre: one card was polled and is still on the reader
+            - aid, key_no, old_key, new_key 
+               are either integers or binary strings
+        @post: new_key is now in use and the application aid is now authentified
+            with that new_key
+        @return: the new session key from the autentication is returned
+        """
+        self.__select_application(aid)
+        current_session_k = self.__authenticate(key_no, old_key)
+        self.__change_key_core(key_no, current_session_k, new_key)
+        new_session_k = self.__authenticate(key_no, new_key)
+        return new_session_k
+
+    def __change_key_core(self, key_no, current_session_k, new_key):
+        """replaces the current key key_no by the new_key
+        @pre: must have authenticated an application and the current_session_k
+        must still be valid.
+            - key_no  must be an integer
+            - current_session_k, new_key must be binary strings
+        @post: DEBUG: a log file change_key.log is appended with the new key and
+            the result of the manipulation"""
+        with open('change_key.log', 'ab') as log: # DEBUG
+            log.write(hexlify(newkey))
+
+        k3des_bytel = hexstr_to_bytes(k3des_str)
+        crc = crc16_iso14443a(k3des_bytel)
+        data = bytes_to_hexstr(k3des_bytel + crc + [0, 0, 0, 0, 0, 0])
+        deciphered_key_data = decipher_CBC_send_mode(currentk, data2, len(currentk) == 8 and DES or DES3)
+        response, sw1, sw2 = perform_command(self.__connection,
+            change_key_command(key_no, deciphered_key_data))
+        if not is_response_ok(response, sw1, sw2):
+            with open('change_key.log', 'ab') as log: # DEBUG
+                log.write(" failed to change\n")
+            raise TagException("Change key has failed!")
+
+        with open('change_key.log', 'ab') as log: # DEBUG
+            log.write(" now in use\n")
+        
 
     def __authenticate(self, key_no, key):
         apdu = authentication_1st_step_apdu(key_no)
@@ -193,7 +231,8 @@ class LoyaltyCard:
         if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('Authentication has failed (2nd step)!')
 
-        des = DES.new(key, DES.MODE_CBC, unhexlify("00"*8)) 
+        algo = len(key) == 8 and DES or DES3
+        des = algo.new(key, algo.MODE_CBC, unhexlify("00"*8)) 
         nr2 = des.decrypt(unhexlify(bytes_to_hexstr(response[3:11])))
         if not nr2 == nr[1:]+nr[:1]:
             raise TagException('Authentication has failed (2nd step)!')
@@ -293,6 +332,8 @@ class LoyaltyCard:
         self.__km1 = unhexlify("00"*8)
         self.__km2 = unhexlify("00"*8)
         self.__kw1 = unhexlify("00"*8)
+
+        self.__change_key(0, 0, self.__kdesfire, self.__kdesfire)
         
         self.__select_application(0x00)
         self.__authenticate(0x00, self.__kdesfire)
