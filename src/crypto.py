@@ -17,7 +17,7 @@ def perform_authentication(key, cipher_text):
     # b        
     des = DES.new(key, DES.MODE_CBC, iv)
     # 20 = ceil(log(2**64-1)/log(10))
-    nr=unhexlify(str(StrongRandom().randint(0,2**64-1)).rjust(20,"0"))        
+    nr=unhexlify(str(StrongRandom().randint(0,2**64-1)).zfill(20,"0"))
     D1=des.decrypt(nr)      
     #c
     longlongint1=struct.unpack('>Q',struct.pack('8s', D1))[0]
