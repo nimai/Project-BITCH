@@ -27,7 +27,11 @@ def perform_authentication(key, cipher_text):
     nt2 = nt[1:]+nt[:1]    
     # b        
     des = algo.new(key, algo.MODE_CBC, iv)
-    nr=unhexlify(str(StrongRandom().randint(1000000000000000,9999999999999999)))        
+    nr = hex(StrongRandom().randint(0,2**64-1))[2:] # remove 0x in front
+    nr = nr[-1] == 'L' and nr[:-1] or nr # remove 'L' of long type if present
+    nr = len(nr) < 16 and "0"* (16-len(nr)) + nr or nr # padding
+    nr = unhexlify(nr)
+
     D1=des.decrypt(nr)      
     #c
     longlongint1=struct.unpack('>Q',struct.pack('8s', D1))[0]
@@ -45,11 +49,10 @@ def xor(a,b):
     buff=struct.unpack('8s',struct.pack('>Q', longlongint1 ^ longlongint2))[0]  
     return buff
 
-def decipher_CBC_send_mode(session_key, data, algo=None):
+def decipher_CBC_send_mode(session_key, data, algo=DES):
     """default algo DES"""
     res = ""
     iv = unhexlify("00"*8)
-    algo = algo is None and len(session_key) == 8 and DES or DES3
     des = algo.new(session_key, algo.MODE_CBC, iv)
     d = des.decrypt(data[0:8])
     res+=d

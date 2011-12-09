@@ -40,8 +40,7 @@ def print_help():
     print "buy     : add a purchase to an RFID loyalty card"
     print "quit    : try to guess" 
 
-
-def init_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):    
+def init_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn): 
     card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)
     t = Timer(3.0, reminder)
     t.start()
@@ -54,7 +53,16 @@ def init_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):
     else:
         print "Loyalty card successfully initialized"    
 
-def reset_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):    
+def reset_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn): 
+    try:
+        input = raw_input("Are you sure you want to reset the tag to factory settings? (y/n)")
+        if not (input == "y" or input == "yes"):
+            return 	 
+    except KeyboardInterrupt:
+        return
+    except EOFError:
+        return 
+    
     card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)  
     t = Timer(3.0, reminder)
     t.start()
@@ -74,6 +82,7 @@ def read_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):
     card.poll();    
     t.cancel()   
     try:     
+        card.authenticate()
         print card.get_counter()
         print card.get_log()
     except TagException as instance:
@@ -86,7 +95,7 @@ def buy_sandwich(n, p_k_enc, p_k_shop, p_ca, cert, conn):
     t.start()
     card.poll(); 
     t.cancel()
-    try:       
+    try:       	
         card.add_sandwich(n)
     except TagException as instance:
         print instance.msg
@@ -155,6 +164,8 @@ def main_loop():
             read_loyalty_card(P_K_enc, P_K_shop, P_ca, cert, connection)
         elif command == "buy":
             buy_sandwich(1, P_K_enc, P_K_shop, P_ca, cert, connection)
+        elif command == "":
+            pass
         elif command == "quit":
             break	
         elif DEBUG:
