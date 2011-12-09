@@ -1,7 +1,7 @@
 ''' Utility functions for doing crypto stuff '''
 
 #from pycryptopp import *
-from Crypto.Cipher import DES
+from Crypto.Cipher import DES, DES3
 from Crypto.Random.random import *
 from crcISO import *
 from M2Crypto import *
@@ -21,20 +21,24 @@ def hexstr_to_long(s):
 def perform_authentication(key, cipher_text):
     iv = unhexlify("00"*8)
     #a
-    des = DES.new(key, DES.MODE_CBC, iv) 
+    algo = len(key) == 8 and DES or DES3
+    des = algo.new(key, algo.MODE_CBC, iv) 
     nt = des.decrypt(cipher_text)       
     nt2 = nt[1:]+nt[:1]    
     # b        
-    des = DES.new(key, DES.MODE_CBC, iv)
-    # 20 = ceil(log(2**64-1)/log(10))
-    nr=unhexlify(str(StrongRandom().randint(0,2**64-1)).zfill(20,"0"))
+    des = algo.new(key, algo.MODE_CBC, iv)
+    nr = hex(StrongRandom().randint(0,2**64-1))[2:] # remove 0x in front
+    nr = nr[-1] == 'L' and nr[:-1] or nr # remove 'L' of long type if present
+    nr = len(nr) < 16 and "0"* (16-len(nr)) + nr or nr # padding
+    nr = unhexlify(nr)
+
     D1=des.decrypt(nr)      
     #c
     longlongint1=struct.unpack('>Q',struct.pack('8s', D1))[0]
     longlongint2=struct.unpack('>Q',struct.pack('8s', nt2))[0]
     buff=struct.unpack('8s',struct.pack('>Q', longlongint1 ^ longlongint2))[0]     
     # d
-    des = DES.new(key, DES.MODE_CBC, iv)
+    des = algo.new(key, algo.MODE_CBC, iv)
     D2=des.decrypt(buff)    
     #e		
     return nt, nt2, nr, D1, D2  
@@ -45,15 +49,16 @@ def xor(a,b):
     buff=struct.unpack('8s',struct.pack('>Q', longlongint1 ^ longlongint2))[0]  
     return buff
 
-def decipher_CBC_send_mode(session_key, data):
+def decipher_CBC_send_mode(session_key, data, algo=DES):
+    """default algo DES"""
     res = ""
     iv = unhexlify("00"*8)
-    des = DES.new(session_key, DES.MODE_CBC, iv)
+    des = algo.new(session_key, algo.MODE_CBC, iv)
     d = des.decrypt(data[0:8])
     res+=d
     i=8
     while not i == len(data):
-        des = DES.new(session_key, DES.MODE_CBC, iv)  
+        des = algo.new(session_key, algo.MODE_CBC, iv)  
         d = des.decrypt(xor(d, data[i:i+8])) 
         res+=d
         i+=8    
@@ -61,11 +66,13 @@ def decipher_CBC_send_mode(session_key, data):
 
 def decipher_CBC_receive_mode(session_key, data):
     iv = unhexlify("00"*8)
-    des = DES.new(session_key, DES.MODE_CBC, iv)
+    algo = len(session_key) == 8 and DES or DES3
+    des = algo.new(session_key, algo.MODE_CBC, iv)
     return des.decrypt(data)
 
-def encipher_DES(mode, iv, key, data):
-    des = DES.new(session_key, mode, iv)
+def encipher_DES_CBC(iv, key, data):
+    algo = len(key) == 8 and DES or DES3
+    des = algo.new(session_key, algo.MODE_CBC, iv)
     return des.encrypt(data)
 
 def verify_s(cert_list, signature, data):

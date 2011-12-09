@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import sys
 
 from smartcard.Exceptions import CardRequestTimeoutException
@@ -5,6 +6,7 @@ from smartcard.System import readers
 from smartcard.util import toHexString
 from threading import Timer
 from M2Crypto import *
+from binascii import hexlify, unhexlify 
 from Crypto import PublicKey
 import Crypto.PublicKey.RSA
 from loyalty_card import *
@@ -166,6 +168,53 @@ def main_loop():
             pass
         elif command == "quit":
             break	
+        elif DEBUG:
+            poll_cmd = "p" # "poll" # shortcut
+            auth_cmd = "a" # "auth"
+            if command[0:len(auth_cmd)] == auth_cmd:
+                args = command.split()
+                def help_auth():
+                    print "USAGE: auth <AID> <KEYNO> <OLDKEY> <NEWKEY>"
+                    print "  where <AID> and <KEYNO> are integers"
+                    print "  and <OLDKEY> and <NEWKEY> are hexdecimal keys"
+                    print "  whose size is resp. 8 or 16 bytes and 16 bytes"
+                if len(args) != 5:
+                    help_auth()
+                    continue
+
+                try:
+                    aid = int(args[1])
+                    keyno = int(args[2])
+                    oldk = unhexlify(args[3])
+                    newk = unhexlify(args[4])
+                except ValueError:
+                    print "either <AID> or <KEYNO> is no a base 10 int"
+                    help_auth()
+                    continue
+                except TypeError:
+                    print "either <OLDKEY> or <NEWKEY> is not a proper hex string"
+                    help_auth()
+                    continue
+                
+                if len(oldk) not in [8, 16]:
+                    print "<OLDKEY> is not 8 or 16 bytes long"
+                    help_auth()
+                    continue
+                
+                if len(newk) != 16:
+                    print "<NEWKEY> is not 16 bytes long"
+                    help_auth()
+                    continue
+
+                LoyaltyCard(P_K_enc, P_K_shop, P_ca, cert, connection
+                    ).change_key(aid, keyno, oldk, newk)
+
+            elif command[0:len(poll_cmd)] == poll_cmd:
+                LoyaltyCard(P_K_enc, P_K_shop, P_ca, cert, connection
+                    ).poll()
+
+            else:
+                print "Unknown command"
         else:
             print "Unknown command"
     connection == None or connection.disconnect()
