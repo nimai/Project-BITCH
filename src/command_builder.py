@@ -1,4 +1,5 @@
 ''' Functions for building APDUs to send to the RFID card '''
+from binascii import hexlify, unhexlify
 
 def polling_apdu(max_tags):
     command = [0xFF, 0x00, 0x00, 0x00, 0x04, 0xD4, 0x4A, max_tags, 0x00]    
@@ -96,24 +97,27 @@ def build_command(command_payload):
     return [0xFF, 0x00, 0x00, 0x00, len(command) + 4, 0xD4, 0x40, 0x01, 0x90
         ] + command
 
-def change_key_command(keyno, decyphered_key_data):
+def change_key_command(keyno, deciphered_key_data):
     """returns the command to send to change the key
     @pre: keyno must be an int, deciphered_key_data must be either a binary
     string or a list of bytes in integers.
     @return: the command to send"""
     try:
         deciphered_key_data.isalnum()
-        dk_data = [ ord(x) for x in command_payload]
+        dk_data = [ ord(x) for x in deciphered_key_data]
     except AttributeError:
-        dk_data = decyphered_key_data
-    if len(decyphered_key_data) != 24:
+        dk_data = deciphered_key_data
+    if len(deciphered_key_data) != 24:
+        print deciphered_key_data
+        print hexlify(deciphered_key_data)
+        print len(deciphered_key_data)
         raise ValueError("Deciphered key data must be 24 bytes long")
 
-    return build_command([0xC4, 0, 0, 0x19, keyno] + dk_data)
+    return build_command([0xC4, 0, 0, 0x19, keyno] + dk_data + [ 0 ])
 
 def is_response_ok(response, sw1, sw2):
     """check if the response is ok
     @return: true if the two last bytes of response are 0x91 and 0 and 
         sw1 is 0x90 and sw2 is 0.
         false otherwise."""
-    return response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00:
+    return response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00

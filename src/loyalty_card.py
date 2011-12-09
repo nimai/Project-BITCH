@@ -8,21 +8,30 @@ from smartcard.Exceptions import *
 from smartcard.util import toHexString, toBytes
 from binascii import hexlify, unhexlify 
 from datetime import datetime
-from Crypto.Cipher import DES
+from Crypto.Cipher import DES, DES3
 import Crypto.Random.random
 import Crypto.Hash.SHA as SHA
 from Crypto.Random.random import *
+from sw2_error_codes import sw2_error_codes
 
 from command_builder import * 
 from crypto import * 
 import struct
 
+DEBUG=True # global debug flag
+
 
 def perform_command(conn, apdu):
+    print '> ' + toHexString(apdu)
     response, sw1, sw2 = conn.transmit(apdu)        
     get_resp = get_response_apdu(sw2)    
     response, sw1, sw2 = conn.transmit(get_resp)    
-    #print 'response: ', toHexString(response), ' status words: ', "%x %x" % (sw1, sw2)
+    print 'response: ', toHexString(response), ' status words: ', "%x %x" % (sw1, sw2)
+    if sw1 == 0x90 and sw2 == 0 and response[-1] != 0:
+        try:
+            print "Desfire: " + hex(response[-1]) + " " + sw2_error_codes[response[-1]]
+        except KeyError: # not in table
+            pass 
     return response, sw1, sw2
 
 def bytes_to_hexstr(array):
@@ -174,6 +183,9 @@ class LoyaltyCard:
         if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('PICC formating has failed')
 
+    def change_key(self, aid, key_no, old_key, new_key):
+        self.__change_key(aid, key_no, old_key, new_key)
+
     def __change_key(self, aid, key_no, old_key, new_key):
         """changes the old key key_no of application aid.
         @pre: one card was polled and is still on the reader
@@ -184,7 +196,7 @@ class LoyaltyCard:
         @return: the new session key from the autentication is returned
         """
         self.__select_application(aid)
-        current_session_k = self.__authenticate(key_no, old_key)
+        current_session_k = unhexlify(self.__authenticate(key_no, old_key))
         self.__change_key_core(key_no, current_session_k, new_key)
         new_session_k = self.__authenticate(key_no, new_key)
         return new_session_k
@@ -197,13 +209,15 @@ class LoyaltyCard:
             - current_session_k, new_key must be binary strings
         @post: DEBUG: a log file change_key.log is appended with the new key and
             the result of the manipulation"""
+        print current_session_k, "length", len(current_session_k)
         with open('change_key.log', 'ab') as log: # DEBUG
-            log.write(hexlify(newkey))
+            log.write(hexlify(new_key))
 
-        k3des_bytel = hexstr_to_bytes(k3des_str)
+        k3des_bytel = hexstr_to_bytes(hexlify(new_key))
         crc = crc16_iso14443a(k3des_bytel)
-        data = bytes_to_hexstr(k3des_bytel + crc + [0, 0, 0, 0, 0, 0])
-        deciphered_key_data = decipher_CBC_send_mode(currentk, data2, len(currentk) == 8 and DES or DES3)
+        data = unhexlify(bytes_to_hexstr(k3des_bytel + crc + [0, 0, 0, 0, 0, 0]))
+        deciphered_key_data = decipher_CBC_send_mode(current_session_k, data,
+            len(current_session_k) == 8 and DES or DES3)
         response, sw1, sw2 = perform_command(self.__connection,
             change_key_command(key_no, deciphered_key_data))
         if not is_response_ok(response, sw1, sw2):
@@ -319,27 +333,25 @@ class LoyaltyCard:
         	
 
     def initialize(self):
-        #/!\ does not work because DES seems to be dependent from an encryption to the other
-        #random_gen = StrongRandom() 
-        #self.__kdesfire = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_CBC)
-        #self.__k = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_CBC)
-        #self.__km1 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_CBC)
-        #self.__km2 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_CBC)
-        #self.__kw1 = DES.new(str(random_gen.randint(10000000,99999999)), DES.MODE_CBC)   
- 
         self.__kdesfire = unhexlify("00"*8)
         self.__k = unhexlify("00"*8)
         self.__km1 = unhexlify("00"*8)
         self.__km2 = unhexlify("00"*8)
         self.__kw1 = unhexlify("00"*8)
 
-        self.__change_key(0, 0, self.__kdesfire, self.__kdesfire)
-        
         self.__select_application(0x00)
         self.__authenticate(0x00, self.__kdesfire)
         self.__create_application(0x01, 0x0B, 0x02) 
         self.__select_application(0x01)
         self.__authenticate(0x00, self.__km1)       
+
+        self.__change_key(1, 0, self.__km1,
+            unhexlify("00112233445566778899AABBCCDDEEFF"))
+
+        self.__change_key(1, 0, 
+            unhexlify("00112233445566778899AABBCCDDEEFF"), 
+                len(self.__km1) == 8 and self.__km1 + self.__km1 or self.__km1)
+        
         self.__create_file(1, 3, [0xFF, 0xE1], 128)
         self.__create_file(2, 3, [0xFF, 0xE1], 128)
 
