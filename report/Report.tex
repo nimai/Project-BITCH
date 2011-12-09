@@ -99,13 +99,15 @@ Finally, we ask confirmation when the user wants to reset the loyalty card to fa
 
 \subsection{Actual weaknesses of the system}
 
-A first weakness is in the way we manage the symmetric key $K_{DESFire}$. Since this key needs to be the same for each card of a given shop, we can't generate it in a random way; the value of this key is hard-coded in the source code. If an attacker was able to obtain the source code of the application, he would be able to recover this key and then erase the whole memory of a tag. \\
+A first weakness is in the way we manage the symmetric key $K_{DESFire}$. Since this key needs to be the same for each card of a given shop, we can't generate it in a random way; the value of this key is hard-coded in the source code of the application. If an attacker were able to obtain the source code of the application, he would be able to recover this key and then erase the whole memory of a tag. \\
 
 Another weakness is the fact that the file containing the counter of bought sandwiches is free readable. That means that any person with a reader can determine for example whether a tag owner is a good client or not. \\ 
 
 A more serious problem may be the fact that files containing the encryption E of key K and the signature S of this encryption are free readable as well. That means that an attacker would be able to obtain this data (by \textbf{skimming} the tag or \textbf{eavesdropping} the channel for example), clone it and then pretend owning a loyalty card from a legitimate sandwich vendor. Of course the attacker can't recover key K and then no shop can be abused since the logs would not be readable. But what if the attacker obtains key $P_{enc}$ by one way or another? A loyalty card would be totally clonable and no vendor would figure out. \\
 
 The system is also vulnerable to a \textbf{replay-attack} due to the authentication mechanism. Since authentication relies on a session key, every operation requiring authentication is allowed as long as the session key is known by the prover. For a write operation, the application proves its identify by encrypting the data with the session key. That means an attacker would be able to increase its counter of sandwiches simply by replaying the message sent to the tag when a sandwich is bought for real. \\
+
+Naturally, like any other RFID-based system, our system may be vulnerable to \textbf{DOS attacks}. The first weakness described in this section is an example. An attacker may also use more generic DOS attacks such as making electronic noise to make the service unavailable. \\
 
 
 \subsection{Towards a better solution}
