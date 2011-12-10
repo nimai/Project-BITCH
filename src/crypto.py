@@ -7,10 +7,23 @@ from crcISO import *
 from M2Crypto import *
 
 import Crypto.PublicKey.RSA as pyRSA
-import Crypto.Random.random
 import Crypto.Hash.SHA as SHA
 import base64
 import struct
+
+try:
+    from Crypto.Random.random import StrongRandom
+    def random_int_wrapper(nbytes):
+        """returns a random integer in [0, 256**nbytes -1 ]"""
+        return StrongRandom().randint(0,256**nbytes - 1)
+except ImportError:
+    import os
+    def random_int_wrapper(nbytes):
+        """returns a random integer in [0, 256**nbytes -1 ]
+        Doesn't accept 0!
+        """
+        return reduce(lambda acc, x: acc* 256 + x,
+            bytearray(os.urandom(nbytes)))
 
 def long_to_hexstr(n):
     return hexlify(unhexlify("%x" % n)) 
@@ -27,7 +40,7 @@ def perform_authentication(key, cipher_text):
     nt2 = nt[1:]+nt[:1]    
     # b        
     des = algo.new(key, algo.MODE_CBC, iv)
-    nr = hex(StrongRandom().randint(0,2**64-1))[2:] # remove 0x in front
+    nr = hex(random_int_wrapper(64/8))[2:] # remove 0x in front
     nr = nr[-1] == 'L' and nr[:-1] or nr # remove 'L' of long type if present
     nr = len(nr) < 16 and "0"* (16-len(nr)) + nr or nr # padding
     nr = unhexlify(nr)
@@ -76,6 +89,9 @@ def encipher_DES_CBC(iv, key, data):
     return des.encrypt(data)
 
 def verify_s(cert_list, signature, data):
+    """returns the subject of the first certificate in <cert_list> that makes the
+    <signature> match the SHA hash of the data.
+    If no certificate does it, return None"""
     digest=SHA.new(data).digest()    
     for x in cert_list:
         key = x.get_pubkey().get_rsa()

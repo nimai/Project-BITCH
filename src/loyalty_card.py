@@ -9,29 +9,28 @@ from smartcard.util import toHexString, toBytes
 from binascii import hexlify, unhexlify 
 from datetime import datetime
 from Crypto.Cipher import DES, DES3
-import Crypto.Random.random
 import Crypto.Hash.SHA as SHA
-from Crypto.Random.random import *
-from sw2_error_codes import sw2_error_codes
-
-from command_builder import * 
 from crypto import * 
 import struct
+
+from command_builder import * 
+from sw2_error_codes import sw2_error_codes
 
 DEBUG=True # global debug flag
 
 
 def perform_command(conn, apdu):
-    print '> ' + toHexString(apdu)
+    if DEBUG: print '> ' + toHexString(apdu)
     response, sw1, sw2 = conn.transmit(apdu)        
     get_resp = get_response_apdu(sw2)    
     response, sw1, sw2 = conn.transmit(get_resp)    
-    print 'response: ', toHexString(response), ' status words: ', "%x %x" % (sw1, sw2)
-    if sw1 == 0x90 and sw2 == 0 and response[-1] != 0:
-        try:
-            print "Desfire: " + hex(response[-1]) + " " + sw2_error_codes[response[-1]]
-        except KeyError: # not in table
-            pass 
+    if DEBUG: 
+        print 'response: ', toHexString(response), ' status words: ', "%x %x" % (sw1, sw2)
+        if sw1 == 0x90 and sw2 == 0 and response[-1] != 0:
+            try:
+                print "Desfire: " + hex(response[-1]) + " " + sw2_error_codes[response[-1]]
+            except KeyError: # not in table
+                pass 
     return response, sw1, sw2
 
 def bytes_to_hexstr(array):
@@ -56,8 +55,9 @@ def add_left_padding(bytes, padding, n):
     return bytes
      
 
-
 def int_to_bytes(integer):
+    """returns a list of integers [0, 255] representing the bytes of <integer>
+    in MSB order (that is lst[0] = less significant byte)"""
     res = []
     binary_string = bin(integer)
     binary_string = binary_string[2:len(binary_string)]    
@@ -69,7 +69,7 @@ def int_to_bytes(integer):
     while not i == (len(binary_string)):    
         tmp = binary_string[i:i+8]            
         res.append(int(tmp, 2))
-        i+=8		
+        i += 8
     return res[::-1]
     
 def int_to_bytes_with_padding(integer, n):
@@ -117,7 +117,7 @@ def encode_log(c, shop_name, p_k_shop):
     
     shop_name_bytes = str_to_bytes(shop_name)
     for i in range(len(shop_name_bytes), 58):
-	shop_name_bytes.append(0x00)
+        shop_name_bytes.append(0x00)
         #shop_name_bytes.append(ord(" "))   
     res.extend(shop_name_bytes)
  
@@ -238,7 +238,7 @@ class LoyaltyCard:
         
         cyper_text = unhexlify(bytes_to_hexstr(response[3:11]))        
         nt, nt2, nr, D1, D2 = perform_authentication(key, cyper_text) 
-        deciphered_data = hexlify(D1)+hexlify(D2) 	
+        deciphered_data = hexlify(D1)+hexlify(D2)       
         apdu = authentication_2nd_step_apdu(hexstr_to_bytes(deciphered_data))
         #print "authentication 2nd step"
         response, sw1, sw2 = perform_command(self.__connection, apdu)
@@ -304,8 +304,8 @@ class LoyaltyCard:
         #print "read data 1st step"
         response, sw1, sw2 = perform_command(self.__connection, apdu)
         if not (response[len(response)-2] == 0x91 and sw1 == 0x90 and sw2 == 0x00): 
-            raise TagException('Read data has failed (1st step)!')	
-	if not (response[len(response)-1] == 0x00 or response[len(response)-1] == 0xAF):
+            raise TagException('Read data has failed (1st step)!')      
+        if not (response[len(response)-1] == 0x00 or response[len(response)-1] == 0xAF):
             raise TagException('Read data has failed (1st step)')
         data += bytes_to_str(response[3:len(response)-2])
         if response[len(response)-1] == 0xAF:
@@ -314,8 +314,8 @@ class LoyaltyCard:
                 #print "read data 2nd step"
                 response, sw1, sw2 = perform_command(self.__connection, apdu)
                 if not (response[len(response)-2] == 0x91 and sw1 == 0x90 and sw2 == 0x00): 
-                    raise TagException('Read data has failed (2nd step)!')	
-	        if not (response[len(response)-1] == 0x00 or response[len(response)-1] == 0xAF):
+                    raise TagException('Read data has failed (2nd step)!')      
+                if not (response[len(response)-1] == 0x00 or response[len(response)-1] == 0xAF):
                     raise TagException('Read data has failed (2nd step)')
                 data += bytes_to_str(response[3:len(response)-2])
                 if response[len(response)-1] == 0x00:
@@ -327,7 +327,7 @@ class LoyaltyCard:
     def poll(self):
         apdu = polling_apdu(1)
         perform_command(self.__connection, apdu)       
-        	
+                
 
     def initialize(self):
         self.__kdesfire = unhexlify("00"*8)
@@ -374,9 +374,9 @@ class LoyaltyCard:
         self.__write_data(2, 0, str_to_bytes("."*2000), sk) 
 
     def authenticate(self):
-	pass	
+        pass    
         self.__select_application(0x01)
-	E = self.__read_data(1, 0, 128, None)
+        E = self.__read_data(1, 0, 128, None)
         if hexlify(E)[0:1] == '0':
             E = unhexlify("00")       
         S = self.__read_data(2, 0, 128, None)         
@@ -392,7 +392,7 @@ class LoyaltyCard:
         self.__erase_memory()      
 
     def get_counter(self):
-	self.__select_application(0x02)
+        self.__select_application(0x02)
         c = decode_counter(self.__read_data(1, 0, 32, None))
         if c > 1:
             return str(c)+" sandwiches purchased so far"
@@ -400,13 +400,13 @@ class LoyaltyCard:
 
     def get_log(self):
         log = ""
-	self.__select_application(1)
-	E = self.__read_data(1, 0, 128, None)
-	K = self.__P_K_enc.decrypt(E)	
-	if (hexlify(K) == "00"):
-		K = unhexlify("00"*8)
+        self.__select_application(1)
+        E = self.__read_data(1, 0, 128, None)
+        K = self.__P_K_enc.decrypt(E)   
+        if (hexlify(K) == "00"):
+                K = unhexlify("00"*8)
 
-	self.__select_application(0x02)
+        self.__select_application(0x02)
         sk = unhexlify(self.__authenticate(0x01, K)) 
         for i in range(0,10):
             log += decode_log(self.__read_data(2, 200*i, 78, sk))
@@ -419,13 +419,13 @@ class LoyaltyCard:
         old_c = decode_counter(self.__read_data(1, 0, 32, None))
         new_c = old_c + 1
 
-	self.__select_application(0x01)
-	E = self.__read_data(1, 0, 128, None)
+        self.__select_application(0x01)
+        E = self.__read_data(1, 0, 128, None)
         if hexlify(E)[0:1] == '0':
             E = unhexlify("00")        
-	K = self.__P_K_enc.decrypt(E)	
-	if (hexlify(K) == "00"):
-		K = unhexlify("00"*8)        
+        K = self.__P_K_enc.decrypt(E)   
+        if (hexlify(K) == "00"):
+                K = unhexlify("00"*8)        
         S = self.__read_data(2, 0, 128, None)         
         subject = verify_s(self.__cert, S, E)
         if subject == None:
@@ -433,8 +433,8 @@ class LoyaltyCard:
         else:
             print "Tag authenticated (owner: "+str(subject)+")"
 
-	self.__select_application(0x02)
-	sk = unhexlify(self.__authenticate(0x01, K))
+        self.__select_application(0x02)
+        sk = unhexlify(self.__authenticate(0x01, K))
         self.__write_data(1, 0, encode_counter(new_c), sk) 
         log = encode_log(new_c,"Attrapez-les-tous", self.__P_K_shop)
         self.__write_data(2, (old_c % 10) * 200, log, sk) 
