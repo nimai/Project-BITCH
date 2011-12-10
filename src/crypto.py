@@ -10,15 +10,18 @@ import Crypto.PublicKey.RSA as pyRSA
 import Crypto.Hash.SHA as SHA
 import base64
 import struct
+
 try:
-    import Crypto.Random.random
+    from Crypto.Random.random import StrongRandom
     def random_int_wrapper(nbytes):
-        """returns a random integer in [0, 2**nbytes -1 ]"""
-        return StrongRandom().randint(0,2**(8*nbytes) - 1)
+        """returns a random integer in [0, 256**nbytes -1 ]"""
+        return StrongRandom().randint(0,256**nbytes - 1)
 except ImportError:
     import os
     def random_int_wrapper(nbytes):
-        """returns a random integer in [0, 2**nbytes -1 ]"""
+        """returns a random integer in [0, 256**nbytes -1 ]
+        Doesn't accept 0!
+        """
         return reduce(lambda acc, x: acc* 256 + x,
             bytearray(os.urandom(nbytes)))
 
