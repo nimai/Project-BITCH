@@ -89,6 +89,9 @@ def encipher_DES_CBC(iv, key, data):
     return des.encrypt(data)
 
 def verify_s(cert_list, signature, data):
+    """returns the subject of the first certificate in <cert_list> that makes the
+    <signature> match the SHA hash of the data.
+    If no certificate does it, return None"""
     digest=SHA.new(data).digest()    
     for x in cert_list:
         key = x.get_pubkey().get_rsa()
