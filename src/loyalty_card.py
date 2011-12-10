@@ -9,14 +9,12 @@ from smartcard.util import toHexString, toBytes
 from binascii import hexlify, unhexlify 
 from datetime import datetime
 from Crypto.Cipher import DES, DES3
-import Crypto.Random.random
 import Crypto.Hash.SHA as SHA
-from Crypto.Random.random import *
-from sw2_error_codes import sw2_error_codes
-
-from command_builder import * 
 from crypto import * 
 import struct
+
+from command_builder import * 
+from sw2_error_codes import sw2_error_codes
 
 DEBUG=True # global debug flag
 

@@ -7,10 +7,20 @@ from crcISO import *
 from M2Crypto import *
 
 import Crypto.PublicKey.RSA as pyRSA
-import Crypto.Random.random
 import Crypto.Hash.SHA as SHA
 import base64
 import struct
+try:
+    import Crypto.Random.random
+    def random_int_wrapper(nbytes):
+        """returns a random integer in [0, 2**nbytes -1 ]"""
+        return StrongRandom().randint(0,2**(8*nbytes) - 1)
+except ImportError:
+    import os
+    def random_int_wrapper(nbytes):
+        """returns a random integer in [0, 2**nbytes -1 ]"""
+        return reduce(lambda acc, x: acc* 256 + x,
+            bytearray(os.urandom(nbytes)))
 
 def long_to_hexstr(n):
     return hexlify(unhexlify("%x" % n)) 
@@ -27,7 +37,7 @@ def perform_authentication(key, cipher_text):
     nt2 = nt[1:]+nt[:1]    
     # b        
     des = algo.new(key, algo.MODE_CBC, iv)
-    nr = hex(StrongRandom().randint(0,2**64-1))[2:] # remove 0x in front
+    nr = hex(random_int_wrapper(64/8))[2:] # remove 0x in front
     nr = nr[-1] == 'L' and nr[:-1] or nr # remove 'L' of long type if present
     nr = len(nr) < 16 and "0"* (16-len(nr)) + nr or nr # padding
     nr = unhexlify(nr)
