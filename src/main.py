@@ -170,48 +170,100 @@ def main_loop():
             break	
         elif DEBUG:
             poll_cmd = "p" # "poll" # shortcut
-            auth_cmd = "c" # "change"
-            if command[0:len(auth_cmd)] == auth_cmd:
+            auth_cmd = "a" # "authenticate" shortcut
+            select_cmd = "s" # "select_application"
+            change_cmd = "c" # "change_key"
+            if command[0:len(poll_cmd)] == poll_cmd:
+                LoyaltyCard(P_K_enc, P_K_shop, P_ca, cert, connection
+                    ).poll()
+
+            elif command[0:len(change_cmd)] == change_cmd:
                 args = command.split()
-                def help_auth():
+                def help_change():
                     print "USAGE: change <AID> <KEYNO> <OLDKEY> <NEWKEY>"
                     print "  where <AID> and <KEYNO> are integers"
                     print "  and <OLDKEY> and <NEWKEY> are hexdecimal keys"
                     print "  whose size is resp. 8 or 16 bytes and 16 bytes"
                 if len(args) != 5:
-                    help_auth()
+                    help_change()
                     continue
 
                 try:
-                    aid = int(args[1])
+                    aid = int(args[1]) 
+                        # TODO :remove aid: just the change_key command
                     keyno = int(args[2])
                     oldk = unhexlify(args[3])
                     newk = unhexlify(args[4])
                 except ValueError:
                     print "either <AID> or <KEYNO> is no a base 10 int"
-                    help_auth()
+                    help_change()
                     continue
                 except TypeError:
                     print "either <OLDKEY> or <NEWKEY> is not a proper hex string"
-                    help_auth()
+                    help_change()
                     continue
                 
                 if len(oldk) not in [8, 16]:
                     print "<OLDKEY> is not 8 or 16 bytes long"
-                    help_auth()
+                    help_change()
                     continue
                 
                 if len(newk) != 16:
                     print "<NEWKEY> is not 16 bytes long"
-                    help_auth()
+                    help_change()
                     continue
 
                 LoyaltyCard(P_K_enc, P_K_shop, P_ca, cert, connection
                     ).change_key(aid, keyno, oldk, newk)
 
-            elif command[0:len(poll_cmd)] == poll_cmd:
+            elif command[0:len(auth_cmd)] == auth_cmd:
+                args = command.split()
+                def help_auth():
+                    print "USAGE: auth <KEYNO> <KEY>"
+                    print "  where <KEYNO> is integer"
+                    print "  and <KEY> is a 8 or 16 bytes hex"
+                if len(args) != 3:
+                    help_auth()
+                    continue
+
+                try:
+                    keyno = int(args[1])
+                    k = unhexlify(args[2])
+                except ValueError:
+                    print "<KEYNO> is no a base 10 int"
+                    help_auth()
+                    continue
+                except TypeError:
+                    print "<KEY> is not a proper hex string"
+                    help_auth()
+                    continue
+                
+                if len(k) not in [8, 16]:
+                    print "<KEY> is not 8 or 16 bytes long"
+                    help_auth()
+                    continue
+                
+                print LoyaltyCard(P_K_enc, P_K_shop, P_ca, cert, connection
+                    ).authenticate_manual(keyno, k)
+
+            elif command[0:len(select_cmd)] == select_cmd:
+                args = command.split()
+                def help_select():
+                    print "USAGE: select <AID>"
+                    print "  where <AID> is an integer"
+                if len(args) != 2:
+                    help_select()
+                    continue
+
+                try:
+                    aid = int(args[1])
+                except ValueError:
+                    print "<KEYNO> is no a base 10 int"
+                    help_select()
+                    continue
+                
                 LoyaltyCard(P_K_enc, P_K_shop, P_ca, cert, connection
-                    ).poll()
+                    ).select_application(aid)
 
             else:
                 print "Unknown command"
