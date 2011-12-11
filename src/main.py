@@ -55,8 +55,8 @@ def init_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):
 
 def reset_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn): 
     try:
-        input = raw_input("Are you sure you want to reset the tag to factory settings? (y/n)")
-        if not (input == "y" or input == "yes"):
+        input = raw_input("Are you sure you want to reset the tag to factory settings? ([y]/n)")
+        if input not in ["y", "yes", ""]:
             return 	 
     except KeyboardInterrupt:
         return
@@ -170,11 +170,11 @@ def main_loop():
             break	
         elif DEBUG:
             poll_cmd = "p" # "poll" # shortcut
-            auth_cmd = "a" # "auth"
+            auth_cmd = "c" # "change"
             if command[0:len(auth_cmd)] == auth_cmd:
                 args = command.split()
                 def help_auth():
-                    print "USAGE: auth <AID> <KEYNO> <OLDKEY> <NEWKEY>"
+                    print "USAGE: change <AID> <KEYNO> <OLDKEY> <NEWKEY>"
                     print "  where <AID> and <KEYNO> are integers"
                     print "  and <OLDKEY> and <NEWKEY> are hexdecimal keys"
                     print "  whose size is resp. 8 or 16 bytes and 16 bytes"

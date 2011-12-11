@@ -188,6 +188,7 @@ class LoyaltyCard:
 
     def __change_key(self, aid, key_no, old_key, new_key):
         """changes the old key key_no of application aid.
+        we assume that the CHANGE_KEY key is not set to 0xE.
         @pre: one card was polled and is still on the reader
             - aid, key_no, old_key, new_key 
                are either integers or binary strings
@@ -197,36 +198,58 @@ class LoyaltyCard:
         """
         self.__select_application(aid)
         current_session_k = unhexlify(self.__authenticate(key_no, old_key))
-        self.__change_key_core(key_no, current_session_k, new_key)
+        with open('change_key.log', 'ab') as log: # DEBUG
+            log.write("aid:" + str(aid) + " keyno:" + str(key_no) + " newkey:" + hexlify(new_key))
+
+        try:
+            self.__change_key_core(key_no, current_session_k, old_key, new_key)
+            with open('change_key.log', 'ab') as log: # DEBUG
+                log.write(" now in use\n")
+        except TagException:
+            with open('change_key.log', 'ab') as log: # DEBUG
+                log.write(" failed to change\n")
+            raise
+        except BaseException:
+            with open('change_key.log', 'ab') as log:
+                log.write(" Failed: unexpected error\n")
+            raise
+            
         new_session_k = self.__authenticate(key_no, new_key)
         return new_session_k
 
-    def __change_key_core(self, key_no, current_session_k, new_key):
+    def __change_key_core(self, key_no, current_session_k, current_k, new_key):
         """replaces the current key key_no by the new_key
         @pre: must have authenticated an application and the current_session_k
         must still be valid.
             - key_no  must be an integer
-            - current_session_k, new_key must be binary strings
+            - current_session_k, new_key must be binary strings of 16 bytes long
+            - we assume that the CHANGE_KEY key is not set to 0xE and that if
+              key_no is different from 0, the data frame must be generated the
+              way that xores the two keys
         @post: DEBUG: a log file change_key.log is appended with the new key and
             the result of the manipulation"""
-        print current_session_k, "length", len(current_session_k)
-        with open('change_key.log', 'ab') as log: # DEBUG
-            log.write(hexlify(new_key))
-
-        k3des_bytel = hexstr_to_bytes(hexlify(new_key))
-        crc = crc16_iso14443a(k3des_bytel)
-        data = unhexlify(bytes_to_hexstr(k3des_bytel + crc + [0, 0, 0, 0, 0, 0]))
+        if DEBUG: print current_session_k, "length", len(current_session_k)
+        if len(current_session_k) != 16 or len(current_k) != 16 
+                or len(new_key) != 16:
+            raise ValueError("either current_session_k (len:{}), current (old)"\
+                + " key (len:{}), or new key (len:{}) is not 16 bytes"\
+                .format(len(current_session_k), len(current_k), len(new_key)))
+        new_key_bytes = hexstr_to_bytes(hexlify(new_key))
+        xor_keys = map(lambda x, y: x ^ y, 
+            hexstr_to_bytes(hexlify(current_k)), new_key_bytes)
+        crc = crc16_iso14443a(new_key_bytes)
+        crc_xor = crc16_iso14443a(xor_keys)
+        if key_no == 0: # normal
+            data = unhexlify(bytes_to_hexstr(new_key_bytes + crc + [0, 0, 0, 0, 0, 0]))
+        else:
+            data = unhexlify(bytes_to_hexstr(xor_keys + crc_xor + crc + [0, 0, 0, 0]))
         deciphered_key_data = decipher_CBC_send_mode(current_session_k, data,
             len(current_session_k) == 8 and DES or DES3)
         response, sw1, sw2 = perform_command(self.__connection,
             change_key_command(key_no, deciphered_key_data))
         if not is_response_ok(response, sw1, sw2):
-            with open('change_key.log', 'ab') as log: # DEBUG
-                log.write(" failed to change\n")
             raise TagException("Change key has failed!")
 
-        with open('change_key.log', 'ab') as log: # DEBUG
-            log.write(" now in use\n")
         
 
     def __authenticate(self, key_no, key):
@@ -342,12 +365,38 @@ class LoyaltyCard:
         self.__select_application(0x01)
         self.__authenticate(0x00, self.__km1)       
 
+        print "change key expermients"
+        print "1 0"
         self.__change_key(1, 0, self.__km1,
             unhexlify("00112233445566778899AABBCCDDEEFF"))
 
         self.__change_key(1, 0, 
             unhexlify("00112233445566778899AABBCCDDEEFF"), 
                 len(self.__km1) == 8 and self.__km1 + self.__km1 or self.__km1)
+
+        print "1 1"
+        self.__change_key(1, 1, self.__kw1,
+            unhexlify("00112233445566778899AABBCCDDEEFF"))
+
+        self.__change_key(1, 1, 
+            unhexlify("00112233445566778899AABBCCDDEEFF"), 
+                len(self.__kw1) == 8 and self.__kw1 + self.__kw1 or self.__kw1)
+
+        print "2 0"
+        self.__change_key(2, 0, self.__km2,
+            unhexlify("00112233445566778899AABBCCDDEEFF"))
+
+        self.__change_key(2, 0, 
+            unhexlify("00112233445566778899AABBCCDDEEFF"), 
+                len(self.__km2) == 8 and self.__km2 + self.__km2 or self.__km2)
+
+        print "2 1"
+        self.__change_key(2, 1, self.__k,
+            unhexlify("00112233445566778899AABBCCDDEEFF"))
+
+        self.__change_key(2, 1, 
+            unhexlify("00112233445566778899AABBCCDDEEFF"), 
+                len(self.__k) == 8 and self.__k + self.__k or self.__k)
         
         self.__create_file(1, 3, [0xFF, 0xE1], 128)
         self.__create_file(2, 3, [0xFF, 0xE1], 128)
