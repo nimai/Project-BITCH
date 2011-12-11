@@ -127,6 +127,7 @@ def encode_log(c, shop_name, p_k_shop):
         #shop_name_bytes.append(ord(" "))   
     res.extend(shop_name_bytes)
  
+    print res, ''.join([chr(x) for x in res]), "len:", len(res)
     log = bytes_to_hexstr(res)
     s = long_to_bytes(p_k_shop.sign(log ,32)[0])
     res.extend(s)       
