@@ -108,7 +108,10 @@ def check_reader_availability():
     if len(r) < 1:
         print "Warning: no reader available"    
     else:
+        #from smartcard.CardConnectionObserver import ConsoleCardConnectionObserver
+        #observer = ConsoleCardConnectionObserver()
         connection = r[0].createConnection()
+        #connection.addObserver(observer)
         connection.connect()  
         
 def reminder():
