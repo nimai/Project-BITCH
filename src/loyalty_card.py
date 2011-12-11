@@ -12,6 +12,7 @@ from Crypto.Cipher import DES, DES3
 import Crypto.Hash.SHA as SHA
 from crypto import * 
 import struct
+from keystore import Keystore
 
 from command_builder import * 
 from sw2_error_codes import sw2_error_codes
@@ -147,8 +148,9 @@ class LoyaltyCard:
         self.__P_K_shop = p_k_shop
         self.__P_ca = p_ca 
         self.__connection = conn  
-        self.__kdesfire = unhexlify("00"*8)        
-        self.__k = unhexlify("00"*8)     
+        store = Keystore()
+        self.__kdesfire = store.getMasterKey()
+        self.__k = unhexlify("00"*8) 
         self.__cert = cert
                 
 
@@ -362,7 +364,7 @@ class LoyaltyCard:
                 
 
     def initialize(self):
-        self.__kdesfire = unhexlify("00"*8)
+        self.__kdesfire = Keystore().getMasterKey()
         self.__k = unhexlify("00"*8)
         self.__km1 = unhexlify("00"*8)
         self.__km2 = unhexlify("00"*8)
