@@ -147,7 +147,7 @@ class LoyaltyCard:
         self.__cert = cert
                 
 
-    def __select_application(self, aid):
+    def select_application(self, aid):
         apdu = select_application_apdu(aid)
         #print "select application"
         response, sw1, sw2 = perform_command(self.__connection, apdu)
@@ -196,7 +196,7 @@ class LoyaltyCard:
             with that new_key
         @return: the new session key from the autentication is returned
         """
-        self.__select_application(aid)
+        self.select_application(aid)
         current_session_k = unhexlify(self.__authenticate(key_no, old_key))
         with open('change_key.log', 'ab') as log: # DEBUG
             log.write("aid:" + str(aid) + " keyno:" + str(key_no) + " newkey:" + hexlify(new_key))
@@ -229,12 +229,14 @@ class LoyaltyCard:
         @post: DEBUG: a log file change_key.log is appended with the new key and
             the result of the manipulation"""
         if DEBUG: print current_session_k, "length", len(current_session_k)
-        if len(current_session_k) != 16 or len(current_k) != 16 
+        if len(current_session_k) not in [8, 16] or len(current_k) not in [8, 16] \
                 or len(new_key) != 16:
-            raise ValueError("either current_session_k (len:{}), current (old)"\
-                + " key (len:{}), or new key (len:{}) is not 16 bytes"\
+            raise ValueError(("either current_session_k (len:{}), current (old)"\
+                + " key (len:{}), or new key (len:{}) is not 16 bytes")\
                 .format(len(current_session_k), len(current_k), len(new_key)))
         new_key_bytes = hexstr_to_bytes(hexlify(new_key))
+        if len(current_k) == 8:
+            current_k = current_k + current_k
         xor_keys = map(lambda x, y: x ^ y, 
             hexstr_to_bytes(hexlify(current_k)), new_key_bytes)
         crc = crc16_iso14443a(new_key_bytes)
@@ -251,6 +253,8 @@ class LoyaltyCard:
             raise TagException("Change key has failed!")
 
         
+    def authenticate_manual(self, key_no, key):
+        return self.__authenticate(key_no, key)
 
     def __authenticate(self, key_no, key):
         apdu = authentication_1st_step_apdu(key_no)
@@ -321,7 +325,7 @@ class LoyaltyCard:
             
         
         
-    def __read_data(self, file_no, offset, length, key):
+    def read_data(self, file_no, offset, length, key):
         data = ""
         apdu = read_data_1st_step_apdu(file_no, int_to_bytes_with_padding(offset , 3), int_to_bytes_with_padding(length , 3))
         #print "read data 1st step"
@@ -359,10 +363,10 @@ class LoyaltyCard:
         self.__km2 = unhexlify("00"*8)
         self.__kw1 = unhexlify("00"*8)
 
-        self.__select_application(0x00)
+        self.select_application(0x00)
         self.__authenticate(0x00, self.__kdesfire)
         self.__create_application(0x01, 0x0B, 0x02) 
-        self.__select_application(0x01)
+        self.select_application(0x01)
         self.__authenticate(0x00, self.__km1)       
 
         print "change key expermients"
@@ -374,29 +378,29 @@ class LoyaltyCard:
             unhexlify("00112233445566778899AABBCCDDEEFF"), 
                 len(self.__km1) == 8 and self.__km1 + self.__km1 or self.__km1)
 
-        print "1 1"
-        self.__change_key(1, 1, self.__kw1,
-            unhexlify("00112233445566778899AABBCCDDEEFF"))
+        #print "1 1"
+        #self.__change_key(1, 1, self.__kw1,
+        #    unhexlify("00112233445566778899AABBCCDDEEFF"))
 
-        self.__change_key(1, 1, 
-            unhexlify("00112233445566778899AABBCCDDEEFF"), 
-                len(self.__kw1) == 8 and self.__kw1 + self.__kw1 or self.__kw1)
+        #self.__change_key(1, 1, 
+        #    unhexlify("00112233445566778899AABBCCDDEEFF"), 
+        #        len(self.__kw1) == 8 and self.__kw1 + self.__kw1 or self.__kw1)
 
-        print "2 0"
-        self.__change_key(2, 0, self.__km2,
-            unhexlify("00112233445566778899AABBCCDDEEFF"))
+        #print "2 0"
+        #self.__change_key(2, 0, self.__km2,
+        #    unhexlify("00112233445566778899AABBCCDDEEFF"))
 
-        self.__change_key(2, 0, 
-            unhexlify("00112233445566778899AABBCCDDEEFF"), 
-                len(self.__km2) == 8 and self.__km2 + self.__km2 or self.__km2)
+        #self.__change_key(2, 0, 
+        #    unhexlify("00112233445566778899AABBCCDDEEFF"), 
+        #        len(self.__km2) == 8 and self.__km2 + self.__km2 or self.__km2)
 
-        print "2 1"
-        self.__change_key(2, 1, self.__k,
-            unhexlify("00112233445566778899AABBCCDDEEFF"))
+        #print "2 1"
+        #self.__change_key(2, 1, self.__k,
+        #    unhexlify("00112233445566778899AABBCCDDEEFF"))
 
-        self.__change_key(2, 1, 
-            unhexlify("00112233445566778899AABBCCDDEEFF"), 
-                len(self.__k) == 8 and self.__k + self.__k or self.__k)
+        #self.__change_key(2, 1, 
+        #    unhexlify("00112233445566778899AABBCCDDEEFF"), 
+        #        len(self.__k) == 8 and self.__k + self.__k or self.__k)
         
         self.__create_file(1, 3, [0xFF, 0xE1], 128)
         self.__create_file(2, 3, [0xFF, 0xE1], 128)
@@ -410,10 +414,10 @@ class LoyaltyCard:
         
         self.__write_data(2, 0, hexstr_to_bytes(long_to_hexstr(S)), sk)        
 
-        self.__select_application(0x00)
+        self.select_application(0x00)
         self.__authenticate(0x00, self.__kdesfire)
         self.__create_application(0x02, 0x0B, 0x02) 
-        self.__select_application(0x02)
+        self.select_application(0x02)
         sk = unhexlify(self.__authenticate(0x00, self.__km2))
         self.__create_file(1, 3, [0xFF, 0xE1], 32)
         self.__create_file(2, 3, [0x1F, 0x11], 2000)
@@ -423,12 +427,11 @@ class LoyaltyCard:
         self.__write_data(2, 0, str_to_bytes("."*2000), sk) 
 
     def authenticate(self):
-        pass    
-        self.__select_application(0x01)
-        E = self.__read_data(1, 0, 128, None)
+        self.select_application(0x01)
+        E = self.read_data(1, 0, 128, None)
         if hexlify(E)[0:1] == '0':
             E = unhexlify("00")       
-        S = self.__read_data(2, 0, 128, None)         
+        S = self.read_data(2, 0, 128, None)         
         subject = verify_s(self.__cert, S, E)
         if subject == None:
             raise TagException('This tag could not be authenticated!')
@@ -436,53 +439,53 @@ class LoyaltyCard:
             print "Tag authenticated (owner: "+str(subject)+")"
 
     def reset(self):
-        self.__select_application(0)
+        self.select_application(0)
         self.__authenticate(0, self.__kdesfire)
         self.__erase_memory()      
 
     def get_counter(self):
-        self.__select_application(0x02)
-        c = decode_counter(self.__read_data(1, 0, 32, None))
+        self.select_application(0x02)
+        c = decode_counter(self.read_data(1, 0, 32, None))
         if c > 1:
             return str(c)+" sandwiches purchased so far"
         return str(c)+" sandwich purchased so far"
 
     def get_log(self):
         log = ""
-        self.__select_application(1)
-        E = self.__read_data(1, 0, 128, None)
+        self.select_application(1)
+        E = self.read_data(1, 0, 128, None)
         K = self.__P_K_enc.decrypt(E)   
         if (hexlify(K) == "00"):
                 K = unhexlify("00"*8)
 
-        self.__select_application(0x02)
+        self.select_application(0x02)
         sk = unhexlify(self.__authenticate(0x01, K)) 
         for i in range(0,10):
-            log += decode_log(self.__read_data(2, 200*i, 78, sk))
+            log += decode_log(self.read_data(2, 200*i, 78, sk))
             log += "\n"
         return log
 
     def add_sandwich(self, n):
 
-        self.__select_application(0x02)
-        old_c = decode_counter(self.__read_data(1, 0, 32, None))
+        self.select_application(0x02)
+        old_c = decode_counter(self.read_data(1, 0, 32, None))
         new_c = old_c + 1
 
-        self.__select_application(0x01)
-        E = self.__read_data(1, 0, 128, None)
+        self.select_application(0x01)
+        E = self.read_data(1, 0, 128, None)
         if hexlify(E)[0:1] == '0':
             E = unhexlify("00")        
         K = self.__P_K_enc.decrypt(E)   
         if (hexlify(K) == "00"):
                 K = unhexlify("00"*8)        
-        S = self.__read_data(2, 0, 128, None)         
+        S = self.read_data(2, 0, 128, None)         
         subject = verify_s(self.__cert, S, E)
         if subject == None:
             raise TagException('This tag could not be authenticated!')
         else:
             print "Tag authenticated (owner: "+str(subject)+")"
 
-        self.__select_application(0x02)
+        self.select_application(0x02)
         sk = unhexlify(self.__authenticate(0x01, K))
         self.__write_data(1, 0, encode_counter(new_c), sk) 
         log = encode_log(new_c,"Attrapez-les-tous", self.__P_K_shop)
