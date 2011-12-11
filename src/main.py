@@ -9,6 +9,7 @@ from M2Crypto import *
 from binascii import hexlify, unhexlify 
 from Crypto import PublicKey
 import Crypto.PublicKey.RSA
+from M2Crypto import RSA as RSA2
 from loyalty_card import *
 import readline # just adding this line improves raw_input() edition capabilities
 import os
@@ -128,7 +129,7 @@ def read_keys():
         P_ca = PublicKey.RSA.importKey(key)
         #key = open('./keys/Attrapez-les-tous_RSAprivate.key').read()  
         #P_K_shop = PublicKey.RSA.importKey(key)
-        P_K_shop = RSA.load_key("./keys/Attrapez-les-tous_RSAprivate.key")
+        P_K_shop = RSA2.load_key("./keys/Attrapez-les-tous_RSAprivate.key")
     except IOError:
         print """
     Need the files:
