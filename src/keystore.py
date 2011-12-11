@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import ConfigParser, os.path
-from binascii import unhexlify
+from binascii import hexlify,unhexlify
 
 class Keystore():
 
@@ -13,7 +13,7 @@ class Keystore():
         self.config.read(self.fname)
 
     def __createFile(self):
-        defaultkey = unhexlify("00"*8)
+        defaultkey = "00"*8
         self.config.add_section('keys')
         self.setMasterKey(defaultkey)    
         
@@ -28,5 +28,12 @@ class Keystore():
         self.config.set('keys','master',val)
         with open(self.fname, 'wb') as f:
             self.config.write(f)
+
+if __name__ == "__main__":
+    k = Keystore()
+    print "masterkey: ",k.getMasterKey()
+    k.setMasterKey("00"*8)
+    print "newmasterkey: ",k.getMasterKey()
+
 
 # vim: set ts=4 sts=4 sw=4 et:

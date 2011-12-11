@@ -149,7 +149,7 @@ class LoyaltyCard:
         self.__P_ca = p_ca 
         self.__connection = conn  
         store = Keystore()
-        self.__kdesfire = store.getMasterKey()
+        self.__kdesfire = unhexlify(store.getMasterKey())
         self.__k = unhexlify("00"*8) 
         self.__cert = cert
                 
@@ -364,7 +364,7 @@ class LoyaltyCard:
                 
 
     def initialize(self):
-        self.__kdesfire = Keystore().getMasterKey()
+        self.__kdesfire = unhexlify(Keystore().getMasterKey())
         self.__k = unhexlify("00"*8)
         self.__km1 = unhexlify("00"*8)
         self.__km2 = unhexlify("00"*8)
