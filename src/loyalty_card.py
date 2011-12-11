@@ -191,15 +191,29 @@ class LoyaltyCard:
         if not(response[len(response)-2] == 0x91 and response[len(response)-1] == 0x00 and sw1 == 0x90 and sw2 == 0x00):            
             raise TagException('PICC formating has failed')
 
-    def change_key(self, aid, key_no, old_key, new_key):
-        self.__change_key(aid, key_no, old_key, new_key)
+    def change_key(self, aid, key_no, key_auth, old_key, new_key):
+        """wrapper for the different ways of changing key
+        @pre: the key_auth equal to the old_key if the key_no is 0
+        @post: if the master key is changed, it is backed-up externally
+        @return: on success, the new session key is returned"""
+        # master key
+        if key_no == 0 and aid == 0:
+            ret = self.change_key1(aid, key_no, old_key, new_key)
+            Keystore().setMasterKey(newkey)
+            return ret
+        elif key_no == 0:
+            return self.change_key1(aid, key_no, old_key, new_key)
+        else:
+            return self.change_key2(aid, key_no, key_auth, old_key, new_key)
 
-    def __change_key(self, aid, key_no, old_key, new_key):
+
+    def change_key1(self, aid, key_no, old_key, new_key):
         """changes the old key key_no of application aid.
         we assume that the CHANGE_KEY key is not set to 0xE.
         @pre: one card was polled and is still on the reader
             - aid, key_no, old_key, new_key 
                are either integers or binary strings
+               key_no must be 0
         @post: new_key is now in use and the application aid is now authentified
             with that new_key
         @return: the new session key from the autentication is returned
@@ -225,11 +239,35 @@ class LoyaltyCard:
         new_session_k = self.__authenticate(key_no, new_key)
         return new_session_k
 
+    def change_key2(self, aid, key_no, key_auth, old_key, new_key):
+        """second method to change a key:
+        @pre 
+        """
+        self.select_application(aid)
+        current_session_k = unhexlify(self.__authenticate(0, key_auth))
+        with open('change_key.log', 'ab') as log: # DEBUG
+            log.write("aid:" + str(aid) + " keyno:" + str(key_no) + " newkey:" + hexlify(new_key))
+
+        try:
+            self.__change_key_core(key_no, current_session_k, old_key, new_key)
+            with open('change_key.log', 'ab') as log: # DEBUG
+                log.write(" now in use\n")
+        except TagException:
+            with open('change_key.log', 'ab') as log: # DEBUG
+                log.write(" failed to change\n")
+            raise
+        except BaseException:
+            with open('change_key.log', 'ab') as log:
+                log.write(" Failed: unexpected error\n")
+            raise
+            
+        return current_session_k
+
     def __change_key_core(self, key_no, current_session_k, current_k, new_key):
         """replaces the current key key_no by the new_key
         @pre: must have authenticated an application and the current_session_k
         must still be valid.
-            - key_no  must be an integer
+            - key_no  must be 1
             - current_session_k, new_key must be binary strings of 16 bytes long
             - we assume that the CHANGE_KEY key is not set to 0xE and that if
               key_no is different from 0, the data frame must be generated the
@@ -379,37 +417,18 @@ class LoyaltyCard:
 
         print "change key expermients"
         print "1 0"
-        self.__change_key(1, 0, self.__km1,
-            unhexlify("00112233445566778899AABBCCDDEEFF"))
+        stupid_k = unhexlify("00112233445566778899AABBCCDDEEFF")
+        self.change_key(1, 0, self.__km1, self.__km1, stupid_k)
 
-        self.__change_key(1, 0, 
-            unhexlify("00112233445566778899AABBCCDDEEFF"), 
+        self.change_key(1, 0, stupid_k, stupid_k,
                 len(self.__km1) == 8 and self.__km1 + self.__km1 or self.__km1)
 
-        #print "1 1"
-        #self.__change_key(1, 1, self.__kw1,
-        #    unhexlify("00112233445566778899AABBCCDDEEFF"))
+        print "1 1"
+        self.change_key(1, 1, self.__km1, # beware! this is the auth key
+            self.__kw1, stupid_k)
+        self.change_key(1, 1, self.__km1, stupid_k,
+                len(self.__kw1) == 8 and self.__kw1 + self.__kw1 or self.__kw1)
 
-        #self.__change_key(1, 1, 
-        #    unhexlify("00112233445566778899AABBCCDDEEFF"), 
-        #        len(self.__kw1) == 8 and self.__kw1 + self.__kw1 or self.__kw1)
-
-        #print "2 0"
-        #self.__change_key(2, 0, self.__km2,
-        #    unhexlify("00112233445566778899AABBCCDDEEFF"))
-
-        #self.__change_key(2, 0, 
-        #    unhexlify("00112233445566778899AABBCCDDEEFF"), 
-        #        len(self.__km2) == 8 and self.__km2 + self.__km2 or self.__km2)
-
-        #print "2 1"
-        #self.__change_key(2, 1, self.__k,
-        #    unhexlify("00112233445566778899AABBCCDDEEFF"))
-
-        #self.__change_key(2, 1, 
-        #    unhexlify("00112233445566778899AABBCCDDEEFF"), 
-        #        len(self.__k) == 8 and self.__k + self.__k or self.__k)
-        
         self.__create_file(1, 3, [0xFF, 0xE1], 128)
         self.__create_file(2, 3, [0xFF, 0xE1], 128)
 
