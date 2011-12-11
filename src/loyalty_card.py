@@ -444,7 +444,7 @@ class LoyaltyCard:
         self.__write_data(1, 0, hexstr_to_bytes(hexlify(E)), sk)
         
         S = self.__P_K_shop.sign(hashlib.sha1(E).digest())              
-        self.__write_data(2, 0, hexstr_to_bytes(long_to_hexstr(S)), sk)        
+        self.__write_data(2, 0, hexstr_to_bytes(hexlify(S)), sk)        
 
         self.select_application(0x00)
         self.__authenticate(0x00, self.__kdesfire)
