@@ -1,0 +1,70 @@
+===================================================================
+Sandwich Manager beta release
+Copyright (C) 2011 Nicolas Maître, Bernard Paulus, Arnaud Theismann
+===================================================================
+
+-------
+Authors
+-------
+
+Nicolas Maître <nicolas.maitre@student.uclouvain.be>
+Bernard Paulus <bernard.paulus@student.uclouvain.be>
+Arnaud Theismann <arnaud.theismann@student.uclouvain.be>
+
+
+------------
+Requirements
+------------
+
+Smart card libraries
+- pcsc_lite
+- ccid
+- pcsc_perl
+- pcsc_tools
+
+Cryptography
+- OpenSSL
+
+Python
+- python >= 2.7.1 
+- pyscard >= 1.6.12 (http://pyscard.sourceforge.net/)
+- PyCrypto >= 2.1.0 (https://www.dlitz.net/software/pycrypto/)
+- M2Crypto >= 0.20.1 (http://chandlerproject.org/Projects/MeTooCrypto#M2Crypto)
+
+
+
+---------------
+Install and run
+---------------
+
+python main.py
+
+/!\ Make sure src/keys and src/certificates are present and contain respectively the keys and certificates required for the application to work.
+
+
+
+---------------------
+Manual of utilization
+---------------------
+
+The following commands are supported:
+
+ - help			Prints the summary of the possible commands.
+
+ - reset		Reset the RFID tag to factory settings. 
+			Requires that you are the owner of the tag.
+
+ - init			Initializes a loyalty card with counter set to 0 and no logs.
+			Requires that you are the owner of the tag.
+
+ - read			Reads the content of a loyalty card (counter of sandwich and logs). 
+			Requires the tag to be owned by yourself or a trusted sandwich vendor.
+
+ - buy			Add one purchase to the loyalty card.
+			Requires the tag to be owned by yourself or a trusted sandwich vendor.
+
+ - quit			Quit the application.
+
+
+
+
