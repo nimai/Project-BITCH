@@ -121,13 +121,13 @@ def read_keys():
     global P_K_enc, P_K_shop, P_ca     
     try:
         key = open('./keys/P_enc--loyaltyEncryptionPublic.key').read()
-        P_K_enc = PublicKey.RSA.importKey(key)    
+        P_K_enc = RSA.importKey(key)    
         key = open('./keys/K_enc--loyaltyEncryptionPrivate.key').read()
-        P_K_enc = PublicKey.RSA.importKey(key)  
+        P_K_enc = RSA.importKey(key)  
         key = open('./keys/P_CA--CAPublicKey.key').read()  
-        P_ca = PublicKey.RSA.importKey(key)
+        P_ca = RSA.importKey(key)
         key = open('./keys/Attrapez-les-tous_RSAprivate.key').read()  
-        P_K_shop = PublicKey.RSA.importKey(key)
+        P_K_shop = RSA.importKey(key)
     except IOError:
         print """
     Need the files:
