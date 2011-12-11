@@ -404,54 +404,47 @@ class LoyaltyCard:
 
     def initialize(self):
         self.__kdesfire = unhexlify(Keystore().getMasterKey())
-        self.__k = unhexlify("00"*8)
-        self.__km1 = unhexlify("00"*8)
-        self.__km2 = unhexlify("00"*8)
-        self.__kw1 = unhexlify("00"*8)
+        self.__k = unhexlify("11112233445566778899AABBCCDDEEFF")
+        self.__km1 = unhexlify("11112233445566778899AABBCCDDEEFF")
+        self.__km2 = unhexlify("11112233445566778899AABBCCDDEEFF")
+        self.__kw1 = unhexlify("11112233445566778899AABBCCDDEEFF")
+        def_key = unhexlify("00"*8) # default key
 
         self.select_application(0x00)
         self.__authenticate(0x00, self.__kdesfire)
         self.__create_application(0x01, 0x0B, 0x02) 
         self.select_application(0x01)
-        self.__authenticate(0x00, self.__km1)       
+        #self.__authenticate(0x00, self.__km1)       
 
-        print "change key expermients"
-        print "1 0"
-        stupid_k = unhexlify("00112233445566778899AABBCCDDEEFF")
-        self.change_key(1, 0, self.__km1, self.__km1, stupid_k)
-
-        self.change_key(1, 0, stupid_k, stupid_k,
-                len(self.__km1) == 8 and self.__km1 + self.__km1 or self.__km1)
-
-        print "1 1"
-        self.change_key(1, 1, self.__km1, # beware! this is the auth key
-            self.__kw1, stupid_k)
-        self.change_key(1, 1, self.__km1, stupid_k,
-                len(self.__kw1) == 8 and self.__kw1 + self.__kw1 or self.__kw1)
-
+        #change_key(aid, key_no, key_auth, old_key, new_key):        
+        
+        self.change_key(1, 0, def_key, def_key, self.__km1)           
         self.__create_file(1, 3, [0xFF, 0xE1], 128)
         self.__create_file(2, 3, [0xFF, 0xE1], 128)
 
+        self.change_key(1, 1, self.__km1, def_key, self.__kw1)      
         sk = unhexlify(self.__authenticate(0x01, self.__kw1))        
         E = self.__P_K_enc.encrypt(self.__k, '')[0]
         self.__write_data(1, 0, hexstr_to_bytes(hexlify(E)), sk)
  
         digest=SHA.new(E).digest()       
-        S = self.__P_K_shop.sign(digest ,'')[0]       
-        
+        S = self.__P_K_shop.sign(digest ,'')[0]              
         self.__write_data(2, 0, hexstr_to_bytes(long_to_hexstr(S)), sk)        
 
         self.select_application(0x00)
         self.__authenticate(0x00, self.__kdesfire)
         self.__create_application(0x02, 0x0B, 0x02) 
         self.select_application(0x02)
-        sk = unhexlify(self.__authenticate(0x00, self.__km2))
+        #sk = unhexlify(self.__authenticate(0x00, self.__km2))
+        self.change_key(2, 0, def_key, def_key, self.__km2)  
         self.__create_file(1, 3, [0xFF, 0xE1], 32)
         self.__create_file(2, 3, [0x1F, 0x11], 2000)
         
+        #sk = unhexlify(self.__authenticate(0x01, self.__k)) 
+        self.change_key(2, 1, self.__km2, def_key, self.__k) 
         sk = unhexlify(self.__authenticate(0x01, self.__k)) 
         self.__write_data(1, 0, encode_counter(0), sk)  
-        self.__write_data(2, 0, str_to_bytes("."*2000), sk) 
+        self.__write_data(2, 0, str_to_bytes("."*2000), sk)
 
     def authenticate(self):
         self.select_application(0x01)
@@ -481,7 +474,8 @@ class LoyaltyCard:
         log = ""
         self.select_application(1)
         E = self.read_data(1, 0, 128, None)
-        K = self.__P_K_enc.decrypt(E)   
+        K = self.__P_K_enc.decrypt(E)
+        print hexlify(K)   
         if (hexlify(K) == "00"):
                 K = unhexlify("00"*8)
 
