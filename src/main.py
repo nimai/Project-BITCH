@@ -118,7 +118,7 @@ def reminder():
     print "No card detected! Please insert a card."  
 
 def read_keys():
-    global P_K_enc, P_K_shop, P_ca     
+    global P_K_enc, P_K_shop, P_ca, K_K_enc     
     try:
         key = open('./keys/P_enc--loyaltyEncryptionPublic.key').read()
         P_K_enc = PublicKey.RSA.importKey(key)    

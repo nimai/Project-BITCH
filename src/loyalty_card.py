@@ -15,6 +15,7 @@ import struct
 from keystore import Keystore
 
 from command_builder import * 
+from desfire_commands_meanings import desfire_cmd_meaning
 from sw2_error_codes import sw2_error_codes
 
 DEBUG=True # global debug flag
@@ -27,10 +28,13 @@ def analyse_return(response, sw1, sw2):
         except KeyError: # not in table
             pass 
 
+
 def perform_command(conn, apdu):
     """transmit the give apdu. returns either the response, or the data if
     additional data is available"""
-    if DEBUG: print '> ' + toHexString(apdu)
+    if DEBUG: print '> ' + \
+        (len(apdu) >= 10 and apdu[9] in desfire_cmd_meaning and \
+            desfire_cmd_meaning[apdu[9]] or '') + toHexString(apdu) 
     response, sw1, sw2 = conn.transmit(apdu)        
     if sw1 == 0x61 and sw2 > 0:
         get_resp = get_response_apdu(sw2)    
@@ -193,13 +197,15 @@ class LoyaltyCard:
 
     def change_key(self, aid, key_no, key_auth, old_key, new_key):
         """wrapper for the different ways of changing key
-        @pre: the key_auth equal to the old_key if the key_no is 0
+        @pre: the key_auth is equal to the old_key if the key_no is 0
         @post: if the master key is changed, it is backed-up externally
         @return: on success, the new session key is returned"""
         # master key
         if key_no == 0 and aid == 0:
             ret = self.change_key1(aid, key_no, old_key, new_key)
-            Keystore().setMasterKey(newkey)
+            Keystore().setMasterKey(hexlify(newkey))
+            if DEBUG:
+                print "Changed master key, new one is %s" %Keystore().getMasterKey()
             return ret
         elif key_no == 0:
             return self.change_key1(aid, key_no, old_key, new_key)
@@ -416,22 +422,15 @@ class LoyaltyCard:
         self.__authenticate(0x00, self.__kdesfire)
         self.__create_application(0x01, 0x0B, 0x02) 
         self.select_application(0x01)
-        self.__authenticate(0x00, self.__km1)       
+        self.__authenticate(0x00, unhexlify("00"*8)) # TODO !!! should be KM1 !!!
 
-        print "change key expermients"
-        print "1 0"
+        print "change key expermients" # DEBUG
+        print "0 0" # DEBUG
         stupid_k = unhexlify("00112233445566778899AABBCCDDEEFF")
-        #self.change_key(1, 0, self.__km1, self.__km1, stupid_k)
+        #self.change_key(0, 0, self.__k, self.__k, stupid_k)
 
-        #self.change_key(1, 0, stupid_k, stupid_k,
-        #        len(self.__km1) == 8 and self.__km1 + self.__km1 or self.__km1)
-
-        #print "1 1"
-        #self.change_key(1, 1, self.__km1, # beware! this is the auth key
-        #    self.__kw1, stupid_k)
-        #self.change_key(1, 1, self.__km1, stupid_k,
-        #        len(self.__kw1) == 8 and self.__kw1 + self.__kw1 or self.__kw1)
-        #self.__authenticate(0x00, self.__km1)       
+        #self.change_key(0, 0, stupid_k, stupid_k,
+        #        len(self.__km1) == 8 and self.__k + self.__k or self.__k)
         
         self.change_key(1, 0, def_key, def_key, self.__km1)           
         self.__create_file(1, 3, [0xFF, 0xE1], 128)

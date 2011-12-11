@@ -109,6 +109,12 @@ An even more serious problem may be the fact that files containing the encryptio
 
 The system is also vulnerable to a \textbf{replay-attack} due to the authentication mechanism. Since authentication relies on a session key, every operation requiring authentication is allowed as long as the session key is known by the prover. For a write operation, the application proves its identify by encrypting the data with the session key. That means an attacker would be able to increase its counter of sandwiches simply listening to the channel and replaying the message sent to the tag when a sandwich is bought for real. \\
 
+Another issue is the fact that nothing prevents a seller to do malicious
+tracking of its clients. Indeed, a malicious seller could identify an user by
+making use of the free space left on the RFID memory. This breach is due to the
+fact that new applications can be freely created because of the tag
+configuration. \\
+
 Naturally, like any other RFID-based system, our system may be vulnerable to \textbf{DOS attacks}. The first weakness described in this section is an example. An attacker may also use more generic DOS attacks such as making electronic noise to make the service unavailable. \\
 
 \newpage
