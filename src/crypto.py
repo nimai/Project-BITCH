@@ -31,7 +31,7 @@ def long_to_hexstr(n):
 def hexstr_to_long(s):
     return long(s, 16)
 
-def perform_authentication(key, cipher_text):
+def perform_authentication(key, cipher_text):    
     iv = unhexlify("00"*8)
     #a
     algo = len(key) == 8 and DES or DES3
@@ -64,6 +64,7 @@ def xor(a,b):
 
 def decipher_CBC_send_mode(session_key, data, algo=DES):
     """default algo DES"""
+    algo = len(session_key) == 8 and DES or DES3
     res = ""
     iv = unhexlify("00"*8)
     des = algo.new(session_key, algo.MODE_CBC, iv)
