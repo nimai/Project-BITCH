@@ -126,8 +126,9 @@ def read_keys():
         P_K_enc = PublicKey.RSA.importKey(key)  
         key = open('./keys/P_CA--CAPublicKey.key').read()  
         P_ca = PublicKey.RSA.importKey(key)
-        key = open('./keys/Attrapez-les-tous_RSAprivate.key').read()  
-        P_K_shop = PublicKey.RSA.importKey(key)
+        #key = open('./keys/Attrapez-les-tous_RSAprivate.key').read()  
+        #P_K_shop = PublicKey.RSA.importKey(key)
+        P_K_shop = RSA.load_key("./keys/Attrapez-les-tous_RSAprivate.key")
     except IOError:
         print """
     Need the files:

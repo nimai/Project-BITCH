@@ -10,6 +10,8 @@ from binascii import hexlify, unhexlify
 from datetime import datetime
 from Crypto.Cipher import DES, DES3
 import Crypto.Hash.SHA as SHA
+from M2Crypto import RSA
+import hashlib
 from crypto import * 
 import struct
 from keystore import Keystore
@@ -440,9 +442,8 @@ class LoyaltyCard:
         sk = unhexlify(self.__authenticate(0x01, self.__kw1))        
         E = self.__P_K_enc.encrypt(self.__k, '')[0]
         self.__write_data(1, 0, hexstr_to_bytes(hexlify(E)), sk)
- 
-        digest=SHA.new(E).digest()       
-        S = self.__P_K_shop.sign(digest ,'')[0]              
+        
+        S = self.__P_K_shop.sign(hashlib.sha1(E).digest())              
         self.__write_data(2, 0, hexstr_to_bytes(long_to_hexstr(S)), sk)        
 
         self.select_application(0x00)
