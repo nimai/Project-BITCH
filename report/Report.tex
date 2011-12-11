@@ -122,11 +122,12 @@ Information leakage due to the free-readable counter can be easily avoided by fo
 
 Forcing authentication to read files containing S and E would be a solution against tag impersonation. If we want to force the authentication with key $K_{M1}$ for example, we need this key to be shared by every shop. Of course the problem is not totally solved since an attacker may obtain $K_{M1}$, but this at least provides a good defence in depth. \\
 
+
 \subsubsection{With same technology only}
 
+An interesting solution to avoid replay-attacks due to the authentication mechanism would be to force re-authentication at each write operation by changing key K. The idea would be to generate a new key K after having increased the counter and added a log. This would requires changing the key used for write operation with this new key, as well as updating E and S in files of AID 01. To do so, key settings of AID 02 should be changed to allow key change without $K_{DESFire}$. Moreover, key $K_{W1}$ should be shared by every shop, which unfortunately involves a new security flaw. \\
+
 \section{Conclusion}
-
-
 
 
 
