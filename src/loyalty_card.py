@@ -18,19 +18,24 @@ from sw2_error_codes import sw2_error_codes
 
 DEBUG=True # global debug flag
 
+def analyse_return(response, sw1, sw2):
+    print 'response: ', toHexString(response), ' status words: ', "%x %x" % (sw1, sw2)
+    if sw1 == 0x90 and sw2 == 0 and response[-1] != 0:
+        try:
+            print "Desfire: " + hex(response[-1]) + " " + sw2_error_codes[response[-1]]
+        except KeyError: # not in table
+            pass 
 
 def perform_command(conn, apdu):
+    """transmit the give apdu. returns either the response, or the data if
+    additional data is available"""
     if DEBUG: print '> ' + toHexString(apdu)
     response, sw1, sw2 = conn.transmit(apdu)        
-    get_resp = get_response_apdu(sw2)    
-    response, sw1, sw2 = conn.transmit(get_resp)    
-    if DEBUG: 
-        print 'response: ', toHexString(response), ' status words: ', "%x %x" % (sw1, sw2)
-        if sw1 == 0x90 and sw2 == 0 and response[-1] != 0:
-            try:
-                print "Desfire: " + hex(response[-1]) + " " + sw2_error_codes[response[-1]]
-            except KeyError: # not in table
-                pass 
+    if sw1 == 0x61 and sw2 > 0:
+        get_resp = get_response_apdu(sw2)    
+        response, sw1, sw2 = conn.transmit(get_resp)    
+        if DEBUG: 
+            analyse_return(response, sw1, sw2)
     return response, sw1, sw2
 
 def bytes_to_hexstr(array):
