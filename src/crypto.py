@@ -2,7 +2,6 @@
 
 #from pycryptopp import *
 from Crypto.Cipher import DES, DES3
-from Crypto.Random.random import *
 from crcISO import *
 from M2Crypto import *
 
@@ -13,6 +12,7 @@ import struct
 
 try:
     from Crypto.Random.random import StrongRandom
+    from Crypto.Random.random import *
     def random_int_wrapper(nbytes):
         """returns a random integer in [0, 256**nbytes -1 ]"""
         return StrongRandom().randint(0,256**nbytes - 1)
