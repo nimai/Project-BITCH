@@ -211,9 +211,11 @@ class LoyaltyCard:
         """changes the old key key_no of application aid.
         we assume that the CHANGE_KEY key is not set to 0xE.
         @pre: one card was polled and is still on the reader
-            - aid, key_no, old_key, new_key 
-               are either integers or binary strings
+            - aid, key_no,  
+               are either integers
                key_no must be 0
+            - old_key, new_key
+               are binary strings
         @post: new_key is now in use and the application aid is now authentified
             with that new_key
         @return: the new session key from the autentication is returned
@@ -418,16 +420,16 @@ class LoyaltyCard:
         print "change key expermients"
         print "1 0"
         stupid_k = unhexlify("00112233445566778899AABBCCDDEEFF")
-        self.change_key(1, 0, self.__km1, self.__km1, stupid_k)
+        #self.change_key(1, 0, self.__km1, self.__km1, stupid_k)
 
-        self.change_key(1, 0, stupid_k, stupid_k,
-                len(self.__km1) == 8 and self.__km1 + self.__km1 or self.__km1)
+        #self.change_key(1, 0, stupid_k, stupid_k,
+        #        len(self.__km1) == 8 and self.__km1 + self.__km1 or self.__km1)
 
-        print "1 1"
-        self.change_key(1, 1, self.__km1, # beware! this is the auth key
-            self.__kw1, stupid_k)
-        self.change_key(1, 1, self.__km1, stupid_k,
-                len(self.__kw1) == 8 and self.__kw1 + self.__kw1 or self.__kw1)
+        #print "1 1"
+        #self.change_key(1, 1, self.__km1, # beware! this is the auth key
+        #    self.__kw1, stupid_k)
+        #self.change_key(1, 1, self.__km1, stupid_k,
+        #        len(self.__kw1) == 8 and self.__kw1 + self.__kw1 or self.__kw1)
 
         self.__create_file(1, 3, [0xFF, 0xE1], 128)
         self.__create_file(2, 3, [0xFF, 0xE1], 128)

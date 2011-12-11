@@ -24,8 +24,9 @@ class Keystore():
         return self.config.get('keys','master')
 
 
-    def setMasterKey(self, val):
-        self.config.set('keys','master',val)
+    def setMasterKey(self, key):
+        """expects the key as hexadecimal string"""
+        self.config.set('keys','master',key)
         with open(self.fname, 'wb') as f:
             self.config.write(f)
 
