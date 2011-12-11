@@ -445,8 +445,8 @@ class LoyaltyCard:
         
         S = self.__P_K_shop.sign(hashlib.sha1(E).digest())              
         if DEBUG:
-            print "sign(enc(K)) is set to ",S
-        self.__write_data(2, 0, hexstr_to_bytes(long_to_hexstr(S)), sk)        
+            print "sign(enc(K)) is set to ",str(S)
+        self.__write_data(2, 0, hexstr_to_bytes(hexlify(S)), sk)        
 
         self.select_application(0x00)
         self.__authenticate(0x00, self.__kdesfire)
