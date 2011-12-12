@@ -158,7 +158,6 @@ class LoyaltyCard:
         self.__connection = conn  
         store = Keystore()
         self.__kdesfire = unhexlify(store.getMasterKey())
-        gen_padded_random(8)
         self.__cert = cert
                 
 
@@ -415,11 +414,11 @@ class LoyaltyCard:
 
     def initialize(self):
         self.__kdesfire = unhexlify(Keystore().getMasterKey())
-        __km1 = gen_padded_random(8)
-        __km2 = gen_padded_random(8)
-        __kw1 = gen_padded_random(8)
+        __km1 = gen_padded_random(16)
+        __km2 = gen_padded_random(16)
+        __kw1 = gen_padded_random(16)
         def_key = unhexlify("00"*8) # default key
-        __k = gen_padded_random(8)
+        __k = gen_padded_random(16)
 
         self.select_application(0x00)
         self.__authenticate(0x00, self.__kdesfire)
@@ -446,7 +445,7 @@ class LoyaltyCard:
             print "sign(enc(K)) is set to ",str(S)
         self.__write_data(2, 0, hexstr_to_bytes(hexlify(S)), sk)        
 
-        # APPLICATION 0
+        # APPLICATION 0
         self.select_application(0x00)
         self.__authenticate(0x00, self.__kdesfire)
         self.__create_application(0x02, 0x0B, 0x02) 
