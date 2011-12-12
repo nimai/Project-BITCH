@@ -25,6 +25,13 @@ except ImportError:
         return reduce(lambda acc, x: acc* 256 + x,
             bytearray(os.urandom(nbytes)))
 
+def gen_padded_random(nbytes):
+    """returns a binary string of a random number padded to nbytes"""
+    nr = hex(random_int_wrapper(nbytes))[2:] # remove 0x in front
+    nr = nr[-1] == 'L' and nr[:-1] or nr # remove 'L' of long type if present
+    nr = len(nr) < 2*nbytes and "0"* (2*nbytes-len(nr)) + nr or nr # padding
+    return unhexlify(nr)
+
 def long_to_hexstr(n):
     return hexlify(unhexlify("%x" % n)) 
 
@@ -40,10 +47,7 @@ def perform_authentication(key, cipher_text):
     nt2 = nt[1:]+nt[:1]    
     # b        
     des = algo.new(key, algo.MODE_CBC, iv)
-    nr = hex(random_int_wrapper(64/8))[2:] # remove 0x in front
-    nr = nr[-1] == 'L' and nr[:-1] or nr # remove 'L' of long type if present
-    nr = len(nr) < 16 and "0"* (16-len(nr)) + nr or nr # padding
-    nr = unhexlify(nr)
+    nr = gen_padded_random(64/8)
 
     D1=des.decrypt(nr)      
     #c
