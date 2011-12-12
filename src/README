@@ -1,6 +1,9 @@
 ===================================================================
+Project BITCH - Beautiful SandwITCH aka Attrapez-les tous!
 Sandwich Manager beta release
 Copyright (C) 2011 Nicolas Maître, Bernard Paulus, Arnaud Theismann
+===================================================================
+See LICENCE for more details about licencing
 ===================================================================
 
 -------
@@ -19,14 +22,13 @@ Requirements
 Smart card libraries
 - pcsc_lite
 - ccid
-- pcsc_perl
 - pcsc_tools
 
 Cryptography
 - OpenSSL
 
 Python
-- python >= 2.7.1 
+- python >= 2.7.1 and < 3
 - pyscard >= 1.6.12 (http://pyscard.sourceforge.net/)
 - PyCrypto >= 2.1.0 (https://www.dlitz.net/software/pycrypto/)
 - M2Crypto >= 0.20.1 (http://chandlerproject.org/Projects/MeTooCrypto#M2Crypto)
@@ -64,7 +66,5 @@ The following commands are supported:
 			Requires the tag to be owned by yourself or a trusted sandwich vendor.
 
  - quit			Quit the application.
-
-
 
 
