@@ -7,8 +7,11 @@ from M2Crypto import *
 
 import Crypto.PublicKey.RSA as pyRSA
 import Crypto.Hash.SHA as SHA
+from M2Crypto import RSA, X509
+import hashlib
 import base64
 import struct
+import os
 
 try:
     from Crypto.Random.random import StrongRandom
@@ -97,17 +100,26 @@ def verify_s(cert_list, signature, data):
     """returns the subject of the first certificate in <cert_list> that makes the
     <signature> match the SHA hash of the data.
     If no certificate does it, return None"""
-    """digest=SHA.new(data).digest()    
-    for x in cert_list:
-        key = x.get_pubkey().get_rsa()
-        subject = x.get_subject()
-        key = pyRSA.importKey(key.as_pem())
-        pub = key.publickey()
-        l = hexstr_to_long(hexlify(signature))
-        if pub.verify(digest, (l, '')):
-            return subject
-    return None"""
-    return 12
+
+    #signature = unhexlify(hexlify(signature))
+    #data = unhexlify(hexlify(data))
+    cert_extension = ".crt"
+    cert_dir = './certificates/'
+    certs = [ cert_dir + x for x in os.listdir(cert_dir) if len(x) > 4 and x[-len(cert_extension):] == cert_extension ]
+    for cert_file in certs:
+        try:
+            cert = X509.load_cert(cert_file)
+            pub_k = cert.get_pubkey()
+            pub_k.verify_init()
+            if pub_k.verify_update(data) != 1:
+                raise Exception("error verify update")
+            if pub_k.verify_final(signature) == 1:
+                sub = cert.get_subject()
+                return str(sub) # there is an hidden free() when using the
+                    # return value outside this function: str() forces the copy
+        except BaseException as e:
+            print str(e)
+    return None
         
 
 

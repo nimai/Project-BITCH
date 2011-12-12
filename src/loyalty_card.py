@@ -480,7 +480,7 @@ class LoyaltyCard:
         self.change_key(2, 1, __km2, def_key, __k) 
         sk = unhexlify(self.__authenticate(0x01, __k)) 
         self.__write_data(1, 0, encode_counter(0), sk)  
-        self.__write_data(2, 0, str_to_bytes("."*2000), sk)
+        self.__write_data(2, 0, str_to_bytes("\0"*2000), sk)
 
     def authenticate(self):
         self.select_application(0x01)
@@ -489,8 +489,11 @@ class LoyaltyCard:
             E = unhexlify("00")       
         S = self.read_data(2, 0, 128, None)         
         subject = verify_s(self.__cert, S, E)
-        if subject == None:
-            raise TagException('This tag could not be authenticated!')
+        if subject is None:
+            if DEBUG:
+                print 'THIS TAG COULD NOT BE AUTHENTICATED!'
+            else:
+                raise TagException('This tag could not be authenticated!')
         else:
             print "Tag authenticated (owner: "+str(subject)+")"
 
@@ -537,8 +540,11 @@ class LoyaltyCard:
                 K = unhexlify("00"*8)        
         S = self.read_data(2, 0, 128, None)         
         subject = verify_s(self.__cert, S, E)
-        if subject == None:
-            raise TagException('This tag could not be authenticated!')
+        if subject is None:
+            if DEBUG:
+                print 'THIS TAG COULD NOT BE AUTHENTICATED!'
+            else:
+                raise TagException('This tag could not be authenticated!')
         else:
             print "Tag authenticated (owner: "+str(subject)+")"
 
