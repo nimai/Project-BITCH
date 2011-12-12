@@ -14,6 +14,7 @@ from loyalty_card import *
 import readline # just adding this line improves raw_input() edition capabilities
 import os
 
+from bitch_exceptions import *
 
 connection = None
 
@@ -42,11 +43,15 @@ def print_help():
     print "quit    : try to guess" 
 
 def init_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn): 
-    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)
     t = Timer(3.0, reminder)
     t.start()
-    card.poll();  
-    t.cancel()
+    try:
+        card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)
+    except MultipleTagsOnReader:
+        print "multiple tags present on reader"
+        return
+    finally:
+        t.cancel()
     try:
         card.initialize()
     except TagException as instance:
@@ -64,11 +69,15 @@ def reset_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):
     except EOFError:
         return 
     
-    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)  
     t = Timer(3.0, reminder)
     t.start()
-    card.poll(); 
-    t.cancel()
+    try:
+        card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)
+    except MultipleTagsOnReader:
+        print "multiple tags present on reader"
+        return
+    finally:
+        t.cancel()
     try:
         card.reset()
     except TagException as instance:
@@ -77,11 +86,15 @@ def reset_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):
         print "Loyalty card successfully reset to factory settings"
 
 def read_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):
-    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)
     t = Timer(3.0, reminder)
     t.start()
-    card.poll();    
-    t.cancel()   
+    try:
+        card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)
+    except MultipleTagsOnReader:
+        print "multiple tags present on reader"
+        return
+    finally:
+        t.cancel()
     try:     
         card.authenticate()
         print card.get_counter()
@@ -91,11 +104,15 @@ def read_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):
         
 
 def buy_sandwich(n, p_k_enc, p_k_shop, p_ca, cert, conn):
-    card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)
     t = Timer(3.0, reminder)
     t.start()
-    card.poll(); 
-    t.cancel()
+    try:
+        card = LoyaltyCard(p_k_enc, p_k_shop, p_ca, cert, conn)
+    except MultipleTagsOnReader:
+        print "multiple tags present on reader"
+        return
+    finally:
+        t.cancel()
     try:       	
         card.add_sandwich(n)
     except TagException as instance:
@@ -180,15 +197,11 @@ def main_loop():
         elif command == "quit":
             break	
         elif DEBUG:
-            poll_cmd = "p" # "poll" # shortcut
             auth_cmd = "a" # "authenticate" shortcut
             select_cmd = "s" # "select_application"
             change_cmd = "c" # "change_key"
-            if command[0:len(poll_cmd)] == poll_cmd:
-                LoyaltyCard(P_K_enc, P_K_shop, P_ca, cert, connection
-                    ).poll()
 
-            elif command[0:len(change_cmd)] == change_cmd:
+            if command[0:len(change_cmd)] == change_cmd:
                 args = command.split()
                 def help_change():
                     print "USAGE: change <AID> <KEYNO> <OLDKEY> <NEWKEY>"

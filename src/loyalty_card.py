@@ -16,6 +16,7 @@ from crypto import *
 import struct
 from keystore import Keystore
 
+from bitch_exceptions import *
 from command_builder import * 
 from desfire_commands_meanings import desfire_cmd_meaning
 from sw2_error_codes import sw2_error_codes
@@ -156,10 +157,13 @@ class LoyaltyCard:
         self.__P_K_shop = p_k_shop
         self.__P_ca = p_ca 
         self.__connection = conn  
+        self.uid = bytes_to_hexstr(self.poll())
         store = Keystore()
-        self.__kdesfire = unhexlify(store.getMasterKey())
+        self.__kdesfire = unhexlify(store.getMasterKey(self.uid) or "00"*8)
+        if len(self.__kdesfire) not in [8, 16]:
+            raise WrongKey("kdesfire from keystore doesn't have a good size " \
+                + "(" + len(self.__kdesfire) + ")")
         self.__cert = cert
-                
 
     def select_application(self, aid):
         apdu = select_application_apdu(aid)
@@ -205,9 +209,10 @@ class LoyaltyCard:
         # master key
         if key_no == 0 and aid == 0:
             ret = self.change_key1(aid, key_no, old_key, new_key)
-            Keystore().setMasterKey(hexlify(newkey))
+            Keystore().setMasterKey(self.uid, hexlify(new_key))
             if DEBUG:
-                print "Changed master key, new one is %s" %Keystore().getMasterKey()
+                print "Changed master key, new one is %s" \
+                    % Keystore().getMasterKey(self.uid)
             return ret
         elif key_no == 0:
             return self.change_key1(aid, key_no, old_key, new_key)
@@ -408,12 +413,25 @@ class LoyaltyCard:
         return decipher_CBC_receive_mode(key, data)
 
     def poll(self):
+        """returns the uid of the only present tag.
+        raises MultipleTagsOnReader exception if multiple tags are present"""
         apdu = polling_apdu(1)
-        perform_command(self.__connection, apdu)       
+        response, sw1, sw2 = perform_command(self.__connection, apdu)       
+        if len(response) < 3:
+            raise TagException("No additional data was read")
+        if not (sw1 == 0x90 and sw2 == 0x00):
+            raise ResponseError("Error on poll: response " + str(response) \
+                + " sw1: " + str(sw1) + " sw2: " + str(sw2))
+        if response[2] != 1: # number of tags not one
+            raise MultipleTagsOnReader("There is too much tags on the reader."
+                + " Poll response: " + str(response) \
+                + " sw1: " + str(sw1) + " sw2: " + str(sw2))
+        uid = response[8:8 + response[7]]
+        return uid
                 
 
     def initialize(self):
-        self.__kdesfire = unhexlify(Keystore().getMasterKey())
+        self.__kdesfire = unhexlify(Keystore().getMasterKey(self.uid) or "00"*8)
         __km1 = gen_padded_random(16)
         __km2 = gen_padded_random(16)
         __kw1 = gen_padded_random(16)
@@ -426,8 +444,11 @@ class LoyaltyCard:
         self.select_application(0x01)
         self.__authenticate(0x00, def_key) # default km1 value at init
 
-        # master key # TODO
+        # master key 
+        #stupid_k = unhexlify("11"*16)
         #self.change_key(0, 0, self.__kdesfire, self.__kdesfire, stupid_k)
+        #self.change_key(0, 0, stupid_k, stupid_k, len(self.__kdesfire) == 8 and 
+        #    self.__kdesfire + self.__kdesfire or self.__kdesfire)
         # km1
         self.change_key(1, 0, def_key, def_key, __km1)           
         # create files of aid 0x1
