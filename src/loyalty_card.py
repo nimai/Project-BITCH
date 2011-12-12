@@ -135,7 +135,8 @@ def encode_log(c, shop_name, p_k_shop):
  
     print res, ''.join([chr(x) for x in res]), "len:", len(res)
     log = bytes_to_hexstr(res)
-    s = long_to_bytes(p_k_shop.sign(log ,32)[0])
+    s = hexstr_to_bytes(hexlify(p_k_shop.sign(unhexlify(log))))   
+    #s = long_to_bytes(p_k_shop.sign(log ,32)[0])
     res.extend(s)       
     return res
 
@@ -440,7 +441,8 @@ class LoyaltyCard:
 
         self.change_key(1, 1, self.__km1, def_key, self.__kw1)      
         sk = unhexlify(self.__authenticate(0x01, self.__kw1))        
-        E = self.__P_K_enc.encrypt(self.__k, '')[0]
+        #E = self.__P_K_enc.encrypt(self.__k, '')[0]
+        E = self.__P_K_enc[0].public_encrypt(self.__k, RSA.pkcs1_padding)
         self.__write_data(1, 0, hexstr_to_bytes(hexlify(E)), sk)
         
         S = self.__P_K_shop.sign(hashlib.sha1(E).digest())              
@@ -491,7 +493,7 @@ class LoyaltyCard:
         log = ""
         self.select_application(1)
         E = self.read_data(1, 0, 128, None)
-        K = self.__P_K_enc.decrypt(E)
+        K = self.__P_K_enc[1].private_decrypt(E, RSA.pkcs1_padding)
         print hexlify(K)   
         if (hexlify(K) == "00"):
                 K = unhexlify("00"*8)
@@ -513,7 +515,7 @@ class LoyaltyCard:
         E = self.read_data(1, 0, 128, None)
         if hexlify(E)[0:1] == '0':
             E = unhexlify("00")        
-        K = self.__P_K_enc.decrypt(E)   
+        K = self.__P_K_enc[1].private_decrypt(E, RSA.pkcs1_padding)
         if (hexlify(K) == "00"):
                 K = unhexlify("00"*8)        
         S = self.read_data(2, 0, 128, None)         

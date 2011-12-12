@@ -121,10 +121,16 @@ def reminder():
 def read_keys():
     global P_K_enc, P_K_shop, P_ca, K_K_enc     
     try:
-        key = open('./keys/P_enc--loyaltyEncryptionPublic.key').read()
+        """key = open('./keys/P_enc--loyaltyEncryptionPublic.key').read()
         P_K_enc = PublicKey.RSA.importKey(key)    
         key = open('./keys/K_enc--loyaltyEncryptionPrivate.key').read()
-        P_K_enc = PublicKey.RSA.importKey(key)  
+        P_K_enc = PublicKey.RSA.importKey(key)  """
+
+        pub = RSA2.load_pub_key("./keys/P_enc--loyaltyEncryptionPublic.key")
+        priv = RSA2.load_key("./keys/K_enc--loyaltyEncryptionPrivate.key")
+        P_K_enc = (pub, priv)
+
+
         key = open('./keys/P_CA--CAPublicKey.key').read()  
         P_ca = PublicKey.RSA.importKey(key)
         #key = open('./keys/Attrapez-les-tous_RSAprivate.key').read()  
