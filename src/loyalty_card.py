@@ -21,7 +21,7 @@ from command_builder import *
 from desfire_commands_meanings import desfire_cmd_meaning
 from sw2_error_codes import sw2_error_codes
 
-DEBUG=True # global debug flag
+DEBUG=False # global debug flag
 
 def analyse_return(response, sw1, sw2):
     print 'response: ', toHexString(response), ' status words: ', "%x %x" % (sw1, sw2)
@@ -134,7 +134,6 @@ def encode_log(c, shop_name, p_k_shop):
         #shop_name_bytes.append(ord(" "))   
     res.extend(shop_name_bytes)
  
-    print res, ''.join([chr(x) for x in res]), "len:", len(res)
     log = bytes_to_hexstr(res)
     s = hexstr_to_bytes(hexlify(p_k_shop.sign(unhexlify(log))))   
     #s = long_to_bytes(p_k_shop.sign(log ,32)[0])
@@ -440,6 +439,11 @@ class LoyaltyCard:
 
         self.select_application(0x00)
         self.__authenticate(0x00, self.__kdesfire)
+        if Keystore().getMasterKey(self.uid) is None:
+            new_k = gen_padded_random(16)
+            self.change_key(0, 0, self.__kdesfire, self.__kdesfire, new_k)
+            self.__kdesfire = new_k
+            
         self.__create_application(0x01, 0x0B, 0x02) 
         self.select_application(0x01)
         self.__authenticate(0x00, def_key) # default km1 value at init
