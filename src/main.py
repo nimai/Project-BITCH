@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys
 
-from smartcard.Exceptions import CardRequestTimeoutException
+from smartcard.Exceptions import CardRequestTimeoutException, CardConnectionException
 from smartcard.System import readers
 from smartcard.util import toHexString
 from threading import Timer
@@ -56,7 +56,7 @@ def init_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):
         card.initialize()
     except TagException as instance:
         print instance.msg
-    except smartcard.Exceptions.CardConnectionException as instance:
+    except CardConnectionException as instance:
 	print instance.msg        
     else:
         print "Loyalty card successfully initialized"    
@@ -84,7 +84,7 @@ def reset_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):
         card.reset()
     except TagException as instance:
         print instance.msg
-    except smartcard.Exceptions.CardConnectionException as instance:
+    except CardConnectionException as instance:
 	print instance.msg     
     else: 
         print "Loyalty card successfully reset to factory settings"
@@ -105,7 +105,7 @@ def read_loyalty_card(p_k_enc, p_k_shop, p_ca, cert, conn):
         print card.get_log()
     except TagException as instance:
         print instance.msg
-    except smartcard.Exceptions.CardConnectionException as instance:
+    except CardConnectionException as instance:
 	print instance.msg    
         
 
@@ -123,7 +123,7 @@ def buy_sandwich(n, p_k_enc, p_k_shop, p_ca, cert, conn):
         card.add_sandwich(n)
     except TagException as instance:
         print instance.msg
-    except smartcard.Exceptions.CardConnectionException as instance:
+    except CardConnectionException as instance:
 	print instance.msg
     else:
         print str(n)+" purchase(s) correctly added to the loyalty card"
