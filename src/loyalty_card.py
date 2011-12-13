@@ -518,9 +518,8 @@ class LoyaltyCard:
         self.select_application(1)
         E = self.read_data(1, 0, 128, None)
         K = self.__P_K_enc[1].private_decrypt(E, RSA.pkcs1_padding)
-        print hexlify(K)   
         if (hexlify(K) == "00"):
-                K = unhexlify("00"*8)
+            K = unhexlify("00"*8)
 
         self.select_application(0x02)
         sk = unhexlify(self.__authenticate(0x01, K)) 
